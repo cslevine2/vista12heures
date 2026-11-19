@@ -236,7 +236,7 @@ static void AdvancePlayback(HWND hwnd) {
                 g_active[e.channel][e.a] = 0;
                 g_velocity[e.channel][e.a] = 0;
             }
-            RECT newRect = NoteRect(e.channel, e.a, 760);
+            RECT newRect = NoteRect(e.channel, e.a, client.right);
             InvalidateRect(hwnd, &oldRect, FALSE);
             InvalidateRect(hwnd, &newRect, FALSE);
             dynamicChanged = true;
@@ -246,7 +246,6 @@ static void AdvancePlayback(HWND hwnd) {
         g_playing = false;
         g_finished = true;
     }
-    RECT client; GetClientRect(hwnd, &client);
     RECT progress = { 0, client.bottom - 75, client.right, client.bottom };
     InvalidateRect(hwnd, &progress, FALSE);
     (void)dynamicChanged;
