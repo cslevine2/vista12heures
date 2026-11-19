@@ -96,9 +96,9 @@ static COLORREF ColorForNote(int note,int velocity) {
 }
 
 
-static COLORREF ReadIniRgb(const TCHAR* key, COLORREF fallback) {
+static COLORREF ReadIniRgb(const TCHAR* section, const TCHAR* key, COLORREF fallback) {
     TCHAR value[64] = {};
-    GetPrivateProfileString(_T("Interface"), key, _T(""), value, 64, g_iniPath);
+    GetPrivateProfileString(section, key, _T(""), value, 64, g_iniPath);
     if (!value[0]) return fallback;
     int r = GetRValue(fallback), g = GetGValue(fallback), b = GetBValue(fallback);
     if (_stscanf_s(value, _T("%d , %d , %d"), &r, &g, &b) != 3) return fallback;
@@ -106,12 +106,12 @@ static COLORREF ReadIniRgb(const TCHAR* key, COLORREF fallback) {
     return RGB(r, g, b);
 }
 static void LoadInterfaceColors() {
-    g_uiBackground = ReadIniRgb(_T("Background"), RGB(49,46,72));
-    g_uiLines = ReadIniRgb(_T("Lines"), RGB(105,103,139));
-    g_uiProgress = ReadIniRgb(_T("Progress"), RGB(225,225,220));
-    g_uiTransportTop = ReadIniRgb(_T("TransportTop"), RGB(105,111,112));
-    g_uiTransportBottom = ReadIniRgb(_T("TransportBottom"), RGB(57,62,65));
-    g_uiTransportEdge = ReadIniRgb(_T("TransportEdge"), RGB(150,155,155));
+    g_uiBackground = ReadIniRgb(_T("Interface"), _T("Background"), RGB(49,46,72));
+    g_uiLines = ReadIniRgb(_T("Interface"), _T("Lines"), RGB(105,103,139));
+    g_uiProgress = ReadIniRgb(_T("Interface"), _T("Progress"), RGB(225,225,220));
+    g_uiTransportTop = ReadIniRgb(_T("Interface"), _T("TransportTop"), RGB(105,111,112));
+    g_uiTransportBottom = ReadIniRgb(_T("Interface"), _T("TransportBottom"), RGB(57,62,65));
+    g_uiTransportEdge = ReadIniRgb(_T("Interface"), _T("TransportEdge"), RGB(150,155,155));
     g_progressHeight = GetPrivateProfileInt(_T("Interface"), _T("ProgressHeight"), 24, g_iniPath);
     if (g_progressHeight < 2) g_progressHeight = 2;
     if (g_progressHeight > 28) g_progressHeight = 28;
@@ -125,8 +125,8 @@ static void LoadInterfaceColors() {
     if (g_lastVisibleNote < 1) g_lastVisibleNote = 1;
     if (g_lastVisibleNote > 127) g_lastVisibleNote = 127;
     if (g_lastVisibleNote <= g_firstVisibleNote) { g_firstVisibleNote = 12; g_lastVisibleNote = 115; }
-    g_linesC3Color = ReadIniRgb(_T("LinesC3color"), RGB(255,210,90));
-    g_linesCColor = ReadIniRgb(_T("LinesCcolor"), RGB(125,145,190));
+    g_linesC3Color = ReadIniRgb(_T("Display"), _T("LinesC3color"), RGB(255,210,90));
+    g_linesCColor = ReadIniRgb(_T("Display"), _T("LinesCcolor"), RGB(125,145,190));
 }
 
 static unsigned short ReadBE16(const unsigned char* p) {
