@@ -42,3 +42,8 @@ The compact track-oriented display from vA0.003 is retained. The only visual adj
 ## 2026-11-19 — Alpha GUI prototype vA0.005
 
 The display now uses sixteen generic MIDI channels (01–16) instead of instrument names. Each channel exposes a placeholder GM-preset value, ready to become a program variable. Synthetic note markers animate independently on each row using a pseudo-random demonstration routine. The displayed `DEMO.MID` filename is still placeholder text; no MIDI file is loaded or played.
+
+
+## 2026-11-19 — Alpha GUI prototype vA0.006
+
+The random demonstration animation is replaced by a first Standard MIDI File reader. The prototype accepts SMF Type 0 and Type 1 files, retains track-level names and event origins internally, merges timed events for playback, and visualizes active notes by MIDI channel and pitch. Note-on and note-off events control marker visibility; program changes update the displayed GM preset number; tempo events contribute to the playback clock. The initial implementation is visual-only and does not yet send MIDI output to the Windows synthesizer.
