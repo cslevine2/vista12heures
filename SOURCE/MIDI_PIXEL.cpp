@@ -12,8 +12,6 @@
 
 static const TCHAR VERSION[] = _T("vA0.010");
 static TCHAR g_iniPath[MAX_PATH] = {};
-static TCHAR g_colorIniPath[MAX_PATH] = {};
-static TCHAR g_interfaceIniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
 static const int MIDI_CHANNELS = 16, MIDI_NOTES = 128;
@@ -43,6 +41,9 @@ static COLORREF g_uiTransportTop = RGB(105,111,112);
 static COLORREF g_uiTransportBottom = RGB(57,62,65);
 static COLORREF g_uiTransportEdge = RGB(150,155,155);
 static int g_progressHeight = 24;
+static int g_lineThickness = 2;
+static int g_firstVisibleNote = 12;
+static int g_lastVisibleNote = 115;
 static int g_program[MIDI_CHANNELS] = {};
 static unsigned long long g_totalUsec = 0, g_elapsedUsec = 0;
 static unsigned long long g_lastMs = 0;
@@ -61,7 +62,7 @@ static int g_backWidth = 0, g_backHeight = 0;
 static void LoadColorPalette() {
  const TCHAR* keys[12] = {_T("C"),_T("C_SHARP"),_T("D"),_T("D_SHARP"),_T("E"),_T("F"),_T("F_SHARP"),_T("G"),_T("G_SHARP"),_T("A"),_T("A_SHARP"),_T("B")};
  for (int i=0;i<12;++i) {
-  TCHAR value[64]={}; GetPrivateProfileString(_T("Notes"),keys[i],_T(""),value,64,g_colorIniPath);
+  TCHAR value[64]={}; GetPrivateProfileString(_T("Notes"),keys[i],_T(""),value,64,g_iniPath);
   int rgb[3]={GetRValue(g_noteColors[i]),GetGValue(g_noteColors[i]),GetBValue(g_noteColors[i])};
   int a=rgb[0],b=rgb[1],c=rgb[2];
   if (value[0] && _stscanf_s(value,_T("%d , %d , %d"),&a,&b,&c)==3) {
@@ -95,7 +96,7 @@ static COLORREF ColorForNote(int note,int velocity) {
 
 static COLORREF ReadIniRgb(const TCHAR* key, COLORREF fallback) {
     TCHAR value[64] = {};
-    GetPrivateProfileString(_T("Interface"), key, _T(""), value, 64, g_interfaceIniPath);
+    GetPrivateProfileString(_T("Interface"), key, _T(""), value, 64, g_iniPath);
     if (!value[0]) return fallback;
     int r = GetRValue(fallback), g = GetGValue(fallback), b = GetBValue(fallback);
     if (_stscanf_s(value, _T("%d , %d , %d"), &r, &g, &b) != 3) return fallback;
@@ -112,6 +113,16 @@ static void LoadInterfaceColors() {
     g_progressHeight = GetPrivateProfileInt(_T("Interface"), _T("ProgressHeight"), 24, g_interfaceIniPath);
     if (g_progressHeight < 2) g_progressHeight = 2;
     if (g_progressHeight > 28) g_progressHeight = 28;
+    g_lineThickness = GetPrivateProfileInt(_T("Display"), _T("LineThickness"), 2, g_iniPath);
+    if (g_lineThickness < 1) g_lineThickness = 1;
+    if (g_lineThickness > 8) g_lineThickness = 8;
+    g_firstVisibleNote = GetPrivateProfileInt(_T("Display"), _T("FirstNote"), 12, g_iniPath);
+    g_lastVisibleNote = GetPrivateProfileInt(_T("Display"), _T("LastNote"), 115, g_iniPath);
+    if (g_firstVisibleNote < 0) g_firstVisibleNote = 0;
+    if (g_firstVisibleNote > 126) g_firstVisibleNote = 126;
+    if (g_lastVisibleNote < 1) g_lastVisibleNote = 1;
+    if (g_lastVisibleNote > 127) g_lastVisibleNote = 127;
+    if (g_lastVisibleNote <= g_firstVisibleNote) { g_firstVisibleNote = 12; g_lastVisibleNote = 115; }
 }
 
 static unsigned short ReadBE16(const unsigned char* p) {
@@ -270,9 +281,8 @@ static bool LoadMidiFile(const TCHAR* path) {
 }
 static RECT NoteRect(int channel, int note, int clientWidth) {
     const int timelineX = 225, timelineR = clientWidth - 28, rowTop = 42, rowH = 18;
-    const int firstVisibleNote = 12, lastVisibleNote = 115;
-    if (note < firstVisibleNote || note > lastVisibleNote) return RECT{ -100, -100, -96, -94 };
-    int x = timelineX + ((note - firstVisibleNote) * (timelineR - timelineX - 4)) / (lastVisibleNote - firstVisibleNote);
+    if (note < g_firstVisibleNote || note > g_lastVisibleNote) return RECT{ -100, -100, -96, -94 };
+    int x = timelineX + ((note - g_firstVisibleNote) * (timelineR - timelineX - 4)) / (g_lastVisibleNote - g_firstVisibleNote);
     int y = rowTop + (MIDI_CHANNELS - 1 - channel) * rowH - 7;
     RECT r = { x, y, x + 4, y + 6 };
     return r;
@@ -365,7 +375,7 @@ static void Txt(HDC dc, int x, int y, LPCTSTR s, COLORREF color, int size = 13, 
     HFONT old = (HFONT)SelectObject(dc, f); TextOut(dc, x, y, s, lstrlen(s)); SelectObject(dc, old); DeleteObject(f);
 }
 static void DrawLine(HDC dc, int x1, int y, int x2, COLORREF color) {
-    HPEN p = CreatePen(PS_SOLID, 2, color); HPEN old = (HPEN)SelectObject(dc, p);
+    HPEN p = CreatePen(PS_SOLID, g_lineThickness, color); HPEN old = (HPEN)SelectObject(dc, p);
     MoveToEx(dc, x1, y, NULL); LineTo(dc, x2, y); SelectObject(dc, old); DeleteObject(p);
 }
 static void SaveWindow(HWND hwnd) {
@@ -498,16 +508,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     TCHAR* slash = _tcsrchr(g_iniPath, _T('\\')); if (slash) *(slash + 1) = 0;
     _tcscat_s(g_iniPath, MAX_PATH, _T("SETTINGS.INI"));
 
-    lstrcpyn(g_colorIniPath, g_iniPath, MAX_PATH);
-    TCHAR* colorSlash = _tcsrchr(g_colorIniPath, (TCHAR)92);
-    if (colorSlash) *(colorSlash + 1) = 0;
-    _tcscat_s(g_colorIniPath, MAX_PATH, _T("CONFIG\\COLORS.INI"));
-
     LoadColorPalette();
-    lstrcpyn(g_interfaceIniPath, g_iniPath, MAX_PATH);
-    TCHAR* interfaceSlash = _tcsrchr(g_interfaceIniPath, (TCHAR)92);
-    if (interfaceSlash) *(interfaceSlash + 1) = 0;
-    _tcscat_s(g_interfaceIniPath, MAX_PATH, _T("CONFIG\\CouleursInterface.INI"));
     LoadInterfaceColors();
     int x = GetPrivateProfileInt(_T("Window"), _T("X"), 100, g_iniPath);
     int y = GetPrivateProfileInt(_T("Window"), _T("Y"), 100, g_iniPath);
