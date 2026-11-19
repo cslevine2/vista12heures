@@ -57,3 +57,8 @@ Optimized painting: the static interface is rendered into a cached memory bitmap
 ## 2026-11-19 — Alpha GUI prototype vA0.008
 
 Three visual refinements: channel 16 is now at the top and channel 1 at the bottom; the visible horizontal note range is narrowed to MIDI note numbers 12–115 (outside notes remain parsed but are not displayed); marker brightness is mapped to NOTE ON velocity.
+
+
+## 2026-11-19 — Alpha visual palette vA0.009
+
+The visualizer now loads twelve user-editable note colors from CONFIG/COLORS.INI using decimal RGB triplets. Each chromatic note class keeps its color across all octaves. Note-on velocity controls brightness by scaling linear-light sRGB components, preserving hue and saturation. The palette also exposes a minimum brightness percentage and a velocity response curve.
