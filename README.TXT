@@ -20,3 +20,6 @@ vA0.008 — Channel rows are displayed in conventional order (MIDI channel 16 at
 
 
 vA0.009 — The twelve chromatic note classes now use the editable decimal-RGB palette in CONFIG/COLORS.INI. The same color repeats in every octave. MIDI note-on velocity scales brightness in linear-light sRGB, preserving the base color's chromaticity. Minimum brightness and response curve are configurable.
+
+
+vA0.010 — Interface colors are now configurable through CONFIG/CouleursInterface.INI. The file controls the main background, channel guide lines, progress fill, transport-panel surfaces and progress-bar thickness.
