@@ -1,0 +1,37 @@
+name: Build MIDI PIXEL (Windows)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-win32:
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Configure MSVC and compile 32-bit test executable
+        shell: powershell
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products '*' -property installationPath
+          if (-not $vs) { throw "Visual Studio installation not found." }
+          $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvarsall.bat"
+          if (-not (Test-Path $vcvars)) { throw "MSVC environment script not found: $vcvars" }
+          $command = "`"$vcvars`" x86 && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\MIDI_PIXEL.cpp /link /SUBSYSTEM:WINDOWS /OUT:MIDI_PIXEL.EXE user32.lib gdi32.lib"
+          cmd.exe /d /c $command
+          if ($LASTEXITCODE -ne 0) { throw "MSVC compilation failed with exit code $LASTEXITCODE" }
+          if (-not (Test-Path "MIDI_PIXEL.EXE")) { throw "MIDI_PIXEL.EXE was not produced." }
+
+      - name: Upload test executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: MIDI_PIXEL-Win32-test
+          path: MIDI_PIXEL.EXE
+          if-no-files-found: error
+          retention-days: 30
