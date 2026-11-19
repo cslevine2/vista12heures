@@ -614,6 +614,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
 
     LoadColorPalette();
     LoadInterfaceColors();
+    LoadProgramNames();
     int x = GetPrivateProfileInt(_T("Window"), _T("X"), 100, g_iniPath);
     int y = GetPrivateProfileInt(_T("Window"), _T("Y"), 100, g_iniPath);
     int w = GetPrivateProfileInt(_T("Window"), _T("Width"), WIN_W, g_iniPath);
