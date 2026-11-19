@@ -87,3 +87,8 @@ Corrected the RGB reader so it receives the INI section explicitly. Interface co
 ## 2026-11-19 — GM program labels vA0.014
 
 Added an external `GM-XG.XML` program-name table containing the 128 standard General MIDI Level 1 programs. The sixteen channel rows now display the current Program Change number (1–128) and its matching name when the XML table is available. The first Program Change encountered for each channel is shown immediately after loading; subsequent Program Change events update the display during playback. The XML file is optional, and the numeric program value remains visible without it. XG variation-bank selection is intentionally left for a later extension. The executable is `VISTA12HEURES_test_vA0.014.exe`; source is `SOURCE/VISTA12HEURES_test_vA0.013.cpp`.
+
+
+## 2026-11-19 — Live tempo and time signature vA0.015
+
+Added parsing of Standard MIDI File tempo meta-events (`FF 51`) and time-signature meta-events (`FF 58`). The interface displays the current tempo in BPM and the current time signature, updating both during playback when the MIDI file contains changes. If metadata is absent, the conventional defaults are 120 BPM and 4/4. The executable is `VISTA12HEURES_test_vA0.015.exe`; source is `SOURCE/VISTA12HEURES_test_vA0.014.cpp`.
