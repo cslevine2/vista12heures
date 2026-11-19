@@ -87,7 +87,7 @@ static void Paint(HWND hwnd) {
     }
 
     int metaY = rowTop + MIDI_CHANNELS * rowH + 8;
-    Txt(dc, labelX, metaY, _T("MIDI comments"), label, 10);
+    Txt(dc, channelX, metaY, _T("MIDI comments"), label, 10);
     Txt(dc, timelineX, metaY, _T("comments   - standard MIDI text"), RGB(190, 190, 205), 12);
     Txt(dc, timelineX, metaY + 17, _T("comment line 2"), RGB(190, 190, 205), 12);
     Txt(dc, timelineX, metaY + 48, _T("DEMO.MID"), white, 19);
