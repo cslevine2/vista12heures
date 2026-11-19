@@ -128,7 +128,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     lstrcpyn(g_iniPath, exe, MAX_PATH);
     TCHAR* slash = _tcsrchr(g_iniPath, _T('\\'));
     if (slash) *(slash + 1) = 0;
-    lstrcat_s(g_iniPath, _T("SETTINGS.INI"));
+    _tcscat_s(g_iniPath, MAX_PATH, _T("SETTINGS.INI"));
 
     int x = GetPrivateProfileInt(_T("Window"), _T("X"), 100, g_iniPath);
     int y = GetPrivateProfileInt(_T("Window"), _T("Y"), 100, g_iniPath);
