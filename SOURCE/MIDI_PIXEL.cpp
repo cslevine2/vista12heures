@@ -216,6 +216,7 @@ static void AdvancePlayback(HWND hwnd) {
     unsigned long long now = GetTickCount64();
     if (g_lastMs) g_elapsedUsec += (now - g_lastMs) * 1000;
     g_lastMs = now;
+    RECT client; GetClientRect(hwnd, &client);
     bool dynamicChanged = false;
     while (g_eventIndex < g_events.size() && g_events[g_eventIndex].usec <= g_elapsedUsec) {
         const MidiEvent& e = g_events[g_eventIndex++];
@@ -226,7 +227,7 @@ static void AdvancePlayback(HWND hwnd) {
                 InvalidateRect(hwnd, &pr, FALSE);
             }
         } else {
-            RECT oldRect = NoteRect(e.channel, e.a, 760);
+            RECT oldRect = NoteRect(e.channel, e.a, client.right);
             if (e.type == 1) {
                 g_active[e.channel][e.a] = 1;
                 g_velocity[e.channel][e.a] = e.b;
