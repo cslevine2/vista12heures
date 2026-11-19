@@ -102,3 +102,8 @@ Added a first audible output path using the native Windows Multimedia MIDI API (
 ## 2026-11-19 — First functional BETA v0.01
 
 The project moves from experimental ALPHA prototypes to its first functional BETA player. The executable naming convention becomes `VISTA12HEURES_v0.01.EXE`, with subsequent BETA versions continuing as `v0.02`, `v0.03`, etc. The progress bar now uses incremental invalidation during playback: only the newly advanced portion is redrawn rather than the entire bar. Clicking within the progress bar seeks to the corresponding playback time. Seeking reconstructs the active notes, current program on all channels, tempo and time signature from the MIDI event stream; if playback was active, it continues from the selected position. A seek intentionally refreshes the full progress region. The executable is `VISTA12HEURES_v0.01.EXE`; source is `SOURCE/VISTA12HEURES_v0.01.cpp`.
+
+
+## 2026-11-19 — BETA v0.02 ergonomic controls
+
+Added direct MIDI-file opening from the command line and drag-and-drop onto the application window. ESC now closes the application cleanly. Keyboard shortcuts are configurable in the [Keyboard] section of SETTINGS.INI, with defaults for relative seek, play/pause and MIDI output volume. The left/right seek interval is configurable in seconds. The progress fill is inset from its former dimensions for a cleaner appearance. The executable is VISTA12HEURES_v0.02.EXE; source is SOURCE/VISTA12HEURES_v0.02.cpp.
