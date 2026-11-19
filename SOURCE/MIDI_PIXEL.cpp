@@ -3,6 +3,7 @@
 #include <tchar.h>
 #include <cstdio>
 
+static const TCHAR VERSION[] = _T("vA0.002");
 static const int CHANNELS = 16;
 static const int NOTES = 128;
 static const int LEFT = 118;
@@ -10,6 +11,7 @@ static const int TOP = 92;
 static const int ROW_H = 24;
 static const int CELL_W = 5;
 static const int GRID_W = NOTES * CELL_W;
+static const int MARKER_SIZE = 7;
 static DWORD g_start = 0;
 
 static COLORREF pitchColors[12] = {
@@ -43,41 +45,39 @@ static void Paint(HWND hwnd) {
     HDC dc = BeginPaint(hwnd, &ps);
     RECT client;
     GetClientRect(hwnd, &client);
-    Fill(dc, 0, 0, client.right, client.bottom, RGB(19, 22, 28));
+    Fill(dc, 0, 0, client.right, client.bottom, RGB(0, 0, 0));
 
     Text(dc, 24, 18, _T("MIDI PIXEL"), RGB(235, 240, 246), 30);
-    Text(dc, 25, 53, _T("WIN32 / GDI  -  FIRST VISUAL PROTOTYPE"), RGB(135, 151, 170), 15);
+    Text(dc, 25, 53, _T("VISTA12HEURES_TEST  ") , RGB(115, 165, 215), 15);
+    Text(dc, 225, 53, VERSION, RGB(135, 151, 170), 15);
 
-    // Note ruler: all 128 MIDI note numbers, with octave C positions marked.
+    // Octave labels only: no vertical cell dividers or note-grid separators.
     for (int n = 0; n < NOTES; ++n) {
-        int x = LEFT + n * CELL_W;
         if ((n % 12) == 0) {
-            Fill(dc, x, TOP - 12, 1, CHANNELS * ROW_H + 13, RGB(88, 105, 125));
+            int x = LEFT + n * CELL_W;
             TCHAR label[16];
             _stprintf_s(label, _T("C%d"), (n / 12) - 1);
-            Text(dc, x - 3, TOP - 34, label, RGB(165, 180, 198), 13);
-        } else if ((n % 12) == 6) {
-            Fill(dc, x, TOP - 5, 1, CHANNELS * ROW_H + 6, RGB(48, 58, 70));
+            Text(dc, x - 3, TOP - 29, label, RGB(150, 170, 195), 13);
         }
     }
 
     DWORD tick = GetTickCount() - g_start;
-    int phase = (int)(tick / 180);
+    int phase = (int)(tick / 240);
     for (int ch = 0; ch < CHANNELS; ++ch) {
         int y = TOP + ch * ROW_H;
         TCHAR channel[8];
         _stprintf_s(channel, _T("%02d"), ch + 1);
         Text(dc, 25, y + 3, channel, RGB(145, 160, 180), 15);
-        Fill(dc, LEFT, y + ROW_H - 2, GRID_W, 1, RGB(43, 51, 62));
 
-        // Deliberately synthetic note activity for layout testing only.
+        // One clean horizontal guide per channel row.
+        Fill(dc, LEFT, y + ROW_H - 2, GRID_W, 2, RGB(30, 92, 155));
+
+        // Synthetic square markers for layout testing only.
         for (int k = 0; k < 5; ++k) {
             int note = (ch * 7 + k * 19 + phase * (k + 1)) % NOTES;
-            int velocity = (ch * 13 + k * 29 + phase * 11) % 128;
-            int barHeight = 5 + velocity / 18;
-            COLORREF c = pitchColors[note % 12];
-            Fill(dc, LEFT + note * CELL_W, y + ROW_H - 4 - barHeight,
-                 CELL_W - 1, barHeight, c);
+            int x = LEFT + note * CELL_W + (CELL_W - MARKER_SIZE) / 2;
+            int markerY = y + (ROW_H - MARKER_SIZE) / 2 - 1;
+            Fill(dc, x, markerY, MARKER_SIZE, MARKER_SIZE, pitchColors[note % 12]);
         }
     }
 
@@ -86,7 +86,7 @@ static void Paint(HWND hwnd) {
     Text(dc, 25, footerY + 12, _T("STOP    PAUSE    BACKWARD    FORWARD"), RGB(185, 197, 211), 16);
     Text(dc, client.right - 116, footerY + 12, _T("PLAY  >"), RGB(120, 220, 155), 16);
     Text(dc, 25, footerY + 39,
-         _T("DEMO NOTES ONLY - MIDI FILE LOADING AND PLAYBACK ARE NOT IMPLEMENTED"),
+         _T("ALPHA DISPLAY TEST - SYNTHETIC NOTES ONLY - NO MIDI FILE PLAYBACK"),
          RGB(235, 178, 92), 13);
 
     EndPaint(hwnd, &ps);
@@ -124,7 +124,9 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     if (!RegisterClass(&wc)) return 1;
 
-    HWND hwnd = CreateWindowEx(0, CLASS_NAME, _T("MIDI PIXEL - first visual prototype"),
+    TCHAR title[128];
+    _stprintf_s(title, _T("VISTA12HEURES_test %s"), VERSION);
+    HWND hwnd = CreateWindowEx(0, CLASS_NAME, title,
         WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 650,
         NULL, NULL, instance, NULL);
     if (!hwnd) return 2;
