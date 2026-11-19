@@ -62,3 +62,8 @@ Three visual refinements: channel 16 is now at the top and channel 1 at the bott
 ## 2026-11-19 — Alpha visual palette vA0.009
 
 The visualizer now loads twelve user-editable note colors from CONFIG/COLORS.INI using decimal RGB triplets. Each chromatic note class keeps its color across all octaves. Note-on velocity controls brightness by scaling linear-light sRGB components, preserving hue and saturation. The palette also exposes a minimum brightness percentage and a velocity response curve.
+
+
+## 2026-11-19 — Interface palette vA0.010
+
+Added CONFIG/CouleursInterface.INI for independent customization of the main window background, horizontal channel lines, progress fill, transport panel surfaces and progress-bar thickness. The existing note palette remains separate in COLORS.INI.
