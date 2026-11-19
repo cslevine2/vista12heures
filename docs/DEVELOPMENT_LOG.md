@@ -72,3 +72,8 @@ Added CONFIG/CouleursInterface.INI for independent customization of the main win
 ## 2026-11-19 — Configuration and display geometry vA0.011
 
 Consolidated the note palette, velocity response, interface colors, window geometry and display settings into one portable root-level SETTINGS.INI. ProgressHeight now controls the full progress-zone height. Added configurable visible MIDI note limits and channel guide-line thickness. The Windows build output is named MIDI_PIXEL.exe, matching the source basename MIDI_PIXEL.cpp.
+
+
+## 2026-11-19 — Octave guide markers vA0.012
+
+Added short markers directly over each channel guide line at every visible C note. The C3 marker (MIDI note 60) has its own configurable color (LinesC3color); all other octave-C markers use LinesCcolor. Marker width matches the four-pixel note marker and marker thickness follows LineThickness. The executable and source filenames return to the versioned VISTA12HEURES_test convention: VISTA12HEURES_test_vA0.012.exe and VISTA12HEURES_test_vA0.011.cpp.
