@@ -35,6 +35,7 @@ static unsigned long long g_maxTick = 0;
 static unsigned short g_division = 480;
 static unsigned int g_initialTempo = 500000;
 static bool g_loaded = false, g_playing = false, g_finished = false;
+static void DestroyBackBuffer();
 static HDC g_backDC = NULL;
 static HBITMAP g_backBitmap = NULL;
 static HBITMAP g_oldBackBitmap = NULL;
