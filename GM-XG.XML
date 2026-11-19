@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- General MIDI Level 1 program names. Program numbers are 1-based for display. -->
+<!-- Bank 0/0 is the standard GM set. The schema leaves room for future XG bank entries. -->
+<GMXG>
+  <Bank msb="0" lsb="0" standard="GM">
+    <Program number="1" name="Acoustic Grand Piano" />
+    <Program number="2" name="Bright Acoustic Piano" />
+    <Program number="3" name="Electric Grand Piano" />
+    <Program number="4" name="Honky-tonk Piano" />
+    <Program number="5" name="Electric Piano 1" />
+    <Program number="6" name="Electric Piano 2" />
+    <Program number="7" name="Harpsichord" />
+    <Program number="8" name="Clavi" />
+    <Program number="9" name="Celesta" />
+    <Program number="10" name="Glockenspiel" />
+    <Program number="11" name="Music Box" />
+    <Program number="12" name="Vibraphone" />
+    <Program number="13" name="Marimba" />
+    <Program number="14" name="Xylophone" />
+    <Program number="15" name="Tubular Bells" />
+    <Program number="16" name="Dulcimer" />
+    <Program number="17" name="Drawbar Organ" />
+    <Program number="18" name="Percussive Organ" />
+    <Program number="19" name="Rock Organ" />
+    <Program number="20" name="Church Organ" />
+    <Program number="21" name="Reed Organ" />
+    <Program number="22" name="Accordion" />
+    <Program number="23" name="Harmonica" />
+    <Program number="24" name="Tango Accordion" />
+    <Program number="25" name="Acoustic Guitar (nylon)" />
+    <Program number="26" name="Acoustic Guitar (steel)" />
+    <Program number="27" name="Electric Guitar (jazz)" />
+    <Program number="28" name="Electric Guitar (clean)" />
+    <Program number="29" name="Electric Guitar (muted)" />
+    <Program number="30" name="Overdriven Guitar" />
+    <Program number="31" name="Distortion Guitar" />
+    <Program number="32" name="Guitar harmonics" />
+    <Program number="33" name="Acoustic Bass" />
+    <Program number="34" name="Electric Bass (finger)" />
+    <Program number="35" name="Electric Bass (pick)" />
+    <Program number="36" name="Fretless Bass" />
+    <Program number="37" name="Slap Bass 1" />
+    <Program number="38" name="Slap Bass 2" />
+    <Program number="39" name="Synth Bass 1" />
+    <Program number="40" name="Synth Bass 2" />
+    <Program number="41" name="Violin" />
+    <Program number="42" name="Viola" />
+    <Program number="43" name="Cello" />
+    <Program number="44" name="Contrabass" />
+    <Program number="45" name="Tremolo Strings" />
+    <Program number="46" name="Pizzicato Strings" />
+    <Program number="47" name="Orchestral Harp" />
+    <Program number="48" name="Timpani" />
+    <Program number="49" name="String Ensemble 1" />
+    <Program number="50" name="String Ensemble 2" />
+    <Program number="51" name="SynthStrings 1" />
+    <Program number="52" name="SynthStrings 2" />
+    <Program number="53" name="Choir Aahs" />
+    <Program number="54" name="Voice Oohs" />
+    <Program number="55" name="Synth Voice" />
+    <Program number="56" name="Orchestra Hit" />
+    <Program number="57" name="Trumpet" />
+    <Program number="58" name="Trombone" />
+    <Program number="59" name="Tuba" />
+    <Program number="60" name="Muted Trumpet" />
+    <Program number="61" name="French Horn" />
+    <Program number="62" name="Brass Section" />
+    <Program number="63" name="SynthBrass 1" />
+    <Program number="64" name="SynthBrass 2" />
+    <Program number="65" name="Soprano Sax" />
+    <Program number="66" name="Alto Sax" />
+    <Program number="67" name="Tenor Sax" />
+    <Program number="68" name="Baritone Sax" />
+    <Program number="69" name="Oboe" />
+    <Program number="70" name="English Horn" />
+    <Program number="71" name="Bassoon" />
+    <Program number="72" name="Clarinet" />
+    <Program number="73" name="Piccolo" />
+    <Program number="74" name="Flute" />
+    <Program number="75" name="Recorder" />
+    <Program number="76" name="Pan Flute" />
+    <Program number="77" name="Blown Bottle" />
+    <Program number="78" name="Shakuhachi" />
+    <Program number="79" name="Whistle" />
+    <Program number="80" name="Ocarina" />
+    <Program number="81" name="Lead 1 (square)" />
+    <Program number="82" name="Lead 2 (sawtooth)" />
+    <Program number="83" name="Lead 3 (calliope)" />
+    <Program number="84" name="Lead 4 (chiff)" />
+    <Program number="85" name="Lead 5 (charang)" />
+    <Program number="86" name="Lead 6 (voice)" />
+    <Program number="87" name="Lead 7 (fifths)" />
+    <Program number="88" name="Lead 8 (bass + lead)" />
+    <Program number="89" name="Pad 1 (new age)" />
+    <Program number="90" name="Pad 2 (warm)" />
+    <Program number="91" name="Pad 3 (polysynth)" />
+    <Program number="92" name="Pad 4 (choir)" />
+    <Program number="93" name="Pad 5 (bowed)" />
+    <Program number="94" name="Pad 6 (metallic)" />
+    <Program number="95" name="Pad 7 (halo)" />
+    <Program number="96" name="Pad 8 (sweep)" />
+    <Program number="97" name="FX 1 (rain)" />
+    <Program number="98" name="FX 2 (soundtrack)" />
+    <Program number="99" name="FX 3 (crystal)" />
+    <Program number="100" name="FX 4 (atmosphere)" />
+    <Program number="101" name="FX 5 (brightness)" />
+    <Program number="102" name="FX 6 (goblins)" />
+    <Program number="103" name="FX 7 (echoes)" />
+    <Program number="104" name="FX 8 (sci-fi)" />
+    <Program number="105" name="Sitar" />
+    <Program number="106" name="Banjo" />
+    <Program number="107" name="Shamisen" />
+    <Program number="108" name="Koto" />
+    <Program number="109" name="Kalimba" />
+    <Program number="110" name="Bag pipe" />
+    <Program number="111" name="Fiddle" />
+    <Program number="112" name="Shanai" />
+    <Program number="113" name="Tinkle Bell" />
+    <Program number="114" name="Agogo" />
+    <Program number="115" name="Steel Drums" />
+    <Program number="116" name="Woodblock" />
+    <Program number="117" name="Taiko Drum" />
+    <Program number="118" name="Melodic Tom" />
+    <Program number="119" name="Synth Drum" />
+    <Program number="120" name="Reverse Cymbal" />
+    <Program number="121" name="Guitar Fret Noise" />
+    <Program number="122" name="Breath Noise" />
+    <Program number="123" name="Seashore" />
+    <Program number="124" name="Bird Tweet" />
+    <Program number="125" name="Telephone Ring" />
+    <Program number="126" name="Helicopter" />
+    <Program number="127" name="Applause" />
+    <Program number="128" name="Gunshot" />
+  </Bank>
+</GMXG>
