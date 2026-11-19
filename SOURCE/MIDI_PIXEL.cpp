@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("vA0.010");
+static const TCHAR VERSION[] = _T("vA0.011");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -70,10 +70,10 @@ static void LoadColorPalette() {
   }
   g_noteColors[i]=RGB(rgb[0],rgb[1],rgb[2]);
  }
- int minimum=GetPrivateProfileInt(_T("Velocity"),_T("MinimumPercent"),10,g_colorIniPath);
+ int minimum=GetPrivateProfileInt(_T("Velocity"),_T("MinimumPercent"),10,g_iniPath);
  if(minimum<0)minimum=0; if(minimum>100)minimum=100;
  g_velocityMinimum=minimum/100.0;
- TCHAR curve[32]={}; GetPrivateProfileString(_T("Velocity"),_T("Curve"),_T("1.00"),curve,32,g_colorIniPath);
+ TCHAR curve[32]={}; GetPrivateProfileString(_T("Velocity"),_T("Curve"),_T("1.00"),curve,32,g_iniPath);
  double v=_tcstod(curve,NULL); if(v<0.10||v>4.00)v=1.00; g_velocityCurve=v;
 }
 static double SrgbToLinear(int x) {
@@ -110,7 +110,7 @@ static void LoadInterfaceColors() {
     g_uiTransportTop = ReadIniRgb(_T("TransportTop"), RGB(105,111,112));
     g_uiTransportBottom = ReadIniRgb(_T("TransportBottom"), RGB(57,62,65));
     g_uiTransportEdge = ReadIniRgb(_T("TransportEdge"), RGB(150,155,155));
-    g_progressHeight = GetPrivateProfileInt(_T("Interface"), _T("ProgressHeight"), 24, g_interfaceIniPath);
+    g_progressHeight = GetPrivateProfileInt(_T("Interface"), _T("ProgressHeight"), 24, g_iniPath);
     if (g_progressHeight < 2) g_progressHeight = 2;
     if (g_progressHeight > 28) g_progressHeight = 28;
     g_lineThickness = GetPrivateProfileInt(_T("Display"), _T("LineThickness"), 2, g_iniPath);
@@ -519,7 +519,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     WNDCLASS wc = {}; wc.lpfnWndProc = WindowProc; wc.hInstance = instance; wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     if (!RegisterClass(&wc)) return 1;
-    TCHAR title[128]; _stprintf_s(title, _T("VISTA12HEURES_test %s"), VERSION);
+    TCHAR title[128]; _stprintf_s(title, _T("MIDI_PIXEL %s"), VERSION);
     HWND hwnd = CreateWindowEx(0, CLASS_NAME, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         x, y, w, h, NULL, NULL, instance, NULL);
     if (!hwnd) return 2;
