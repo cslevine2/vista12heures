@@ -67,3 +67,8 @@ The visualizer now loads twelve user-editable note colors from CONFIG/COLORS.INI
 ## 2026-11-19 — Interface palette vA0.010
 
 Added CONFIG/CouleursInterface.INI for independent customization of the main window background, horizontal channel lines, progress fill, transport panel surfaces and progress-bar thickness. The existing note palette remains separate in COLORS.INI.
+
+
+## 2026-11-19 — Configuration and display geometry vA0.011
+
+Consolidated the note palette, velocity response, interface colors, window geometry and display settings into one portable root-level SETTINGS.INI. ProgressHeight now controls the full progress-zone height. Added configurable visible MIDI note limits and channel guide-line thickness. The Windows build output is named MIDI_PIXEL.exe, matching the source basename MIDI_PIXEL.cpp.
