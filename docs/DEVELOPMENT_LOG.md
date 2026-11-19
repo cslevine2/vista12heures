@@ -92,3 +92,8 @@ Added an external `GM-XG.XML` program-name table containing the 128 standard Gen
 ## 2026-11-19 — Live tempo and time signature vA0.015
 
 Added parsing of Standard MIDI File tempo meta-events (`FF 51`) and time-signature meta-events (`FF 58`). The interface displays the current tempo in BPM and the current time signature, updating both during playback when the MIDI file contains changes. If metadata is absent, the conventional defaults are 120 BPM and 4/4. The executable is `VISTA12HEURES_test_vA0.015.exe`; source is `SOURCE/VISTA12HEURES_test_vA0.014.cpp`.
+
+
+## 2026-11-19 — First Windows MIDI output vA0.016
+
+Added a first audible output path using the native Windows Multimedia MIDI API (WinMM). At startup, MIDI PIXEL searches for and opens Microsoft GS Wavetable Synth by name; if it is unavailable, the visual player remains usable and reports that audio output could not be opened. Note On, Note Off and Program Change events are sent through a small output layer that is independent of MIDI file parsing, leaving room for selectable hardware, virtual and other MIDI destinations later. STOP, pause, file replacement, end-of-file and application close send sustain-off and all-notes-off messages to avoid hanging notes. This is an initial output milestone: controllers, pitch bend, pressure, SysEx, bank selection and selectable output devices are not yet implemented. The executable is `VISTA12HEURES_test_vA0.016.exe`; source is `SOURCE/VISTA12HEURES_test_vA0.015.cpp`.
