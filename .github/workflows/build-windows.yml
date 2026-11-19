@@ -28,14 +28,13 @@ jobs:
           cmd.exe /d /c $command
           if ($LASTEXITCODE -ne 0) { throw "MSVC compilation failed with exit code $LASTEXITCODE" }
           if (-not (Test-Path $exe)) { throw "$exe was not produced." }
-          "[Window]","X=100","Y=100","Width=760","Height=500" | Set-Content -Encoding ASCII SETTINGS.INI
 
       - name: Upload versioned test package
         uses: actions/upload-artifact@v4
         with:
           name: MIDI_PIXEL_vA0.011
           path: |
-            VISTA12HEURES_test_vA0.010.exe
+            MIDI_PIXEL.exe
             SETTINGS.INI
             SOURCE/MIDI_PIXEL.cpp
           if-no-files-found: error
