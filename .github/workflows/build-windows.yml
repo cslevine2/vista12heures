@@ -23,8 +23,8 @@ jobs:
           if (-not $vs) { throw "Visual Studio installation not found." }
           $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvarsall.bat"
           if (-not (Test-Path $vcvars)) { throw "MSVC environment script not found: $vcvars" }
-          $exe = "VISTA12HEURES_v0.01.EXE"
-          $command = "`"$vcvars`" x86 && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.01.cpp /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib"
+          $exe = "VISTA12HEURES_v0.02.EXE"
+          $command = "`"$vcvars`" x86 && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.02.cpp /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib shell32.lib"
           cmd.exe /d /c $command
           if ($LASTEXITCODE -ne 0) { throw "MSVC compilation failed with exit code $LASTEXITCODE" }
           if (-not (Test-Path $exe)) { throw "$exe was not produced." }
@@ -32,11 +32,11 @@ jobs:
       - name: Upload versioned test package
         uses: actions/upload-artifact@v4
         with:
-          name: VISTA12HEURES_v0.01
+          name: VISTA12HEURES_v0.02
           path: |
-            VISTA12HEURES_v0.01.EXE
+            VISTA12HEURES_v0.02.EXE
             SETTINGS.INI
             GM-XG.XML
-            SOURCE/VISTA12HEURES_v0.01.cpp
+            SOURCE/VISTA12HEURES_v0.02.cpp
           if-no-files-found: error
           retention-days: 30
