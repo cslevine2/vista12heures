@@ -1,5 +1,5 @@
 CONFIG
 
-User-editable configuration files will live here.
+User-editable configuration files live here.
 
-The first palette reference file is COLORS.INI. The current visual prototype uses an internal palette; external INI loading is planned for a later step.
+COLORS.INI defines the twelve chromatic note colors using decimal RGB triplets. The same color is used in every octave. Note brightness is scaled from MIDI note-on velocity in linear-light sRGB, preserving chromaticity.
