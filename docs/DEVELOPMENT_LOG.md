@@ -47,3 +47,8 @@ The display now uses sixteen generic MIDI channels (01–16) instead of instrume
 ## 2026-11-19 — Alpha GUI prototype vA0.006
 
 The random demonstration animation is replaced by a first Standard MIDI File reader. The prototype accepts SMF Type 0 and Type 1 files, retains track-level names and event origins internally, merges timed events for playback, and visualizes active notes by MIDI channel and pitch. Note-on and note-off events control marker visibility; program changes update the displayed GM preset number; tempo events contribute to the playback clock. The initial implementation is visual-only and does not yet send MIDI output to the Windows synthesizer.
+
+
+## 2026-11-19 — Alpha GUI prototype vA0.007
+
+Optimized painting: the static interface is rendered into a cached memory bitmap. During playback, note ON/OFF changes invalidate only the affected marker rectangles; the progress/status strip is refreshed separately. The source file `SOURCE/MIDI_PIXEL.cpp` is included in the downloadable build artifact together with the executable and `SETTINGS.INI`.
