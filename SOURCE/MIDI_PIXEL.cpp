@@ -10,9 +10,10 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("vA0.009");
+static const TCHAR VERSION[] = _T("vA0.010");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_colorIniPath[MAX_PATH] = {};
+static TCHAR g_interfaceIniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
 static const int MIDI_CHANNELS = 16, MIDI_NOTES = 128;
@@ -35,6 +36,13 @@ static COLORREF g_noteColors[12] = {
  RGB(47,111,207), RGB(90,175,114), RGB(8,212,79), RGB(58,84,51)
 };
 static double g_velocityMinimum = 0.10, g_velocityCurve = 1.00;
+static COLORREF g_uiBackground = RGB(49,46,72);
+static COLORREF g_uiLines = RGB(105,103,139);
+static COLORREF g_uiProgress = RGB(225,225,220);
+static COLORREF g_uiTransportTop = RGB(105,111,112);
+static COLORREF g_uiTransportBottom = RGB(57,62,65);
+static COLORREF g_uiTransportEdge = RGB(150,155,155);
+static int g_progressHeight = 24;
 static int g_program[MIDI_CHANNELS] = {};
 static unsigned long long g_totalUsec = 0, g_elapsedUsec = 0;
 static unsigned long long g_lastMs = 0;
@@ -82,6 +90,28 @@ static COLORREF ColorForNote(int note,int velocity) {
  return RGB(LinearToSrgb(SrgbToLinear(GetRValue(base))*factor),
             LinearToSrgb(SrgbToLinear(GetGValue(base))*factor),
             LinearToSrgb(SrgbToLinear(GetBValue(base))*factor));
+}
+
+
+static COLORREF ReadIniRgb(const TCHAR* key, COLORREF fallback) {
+    TCHAR value[64] = {};
+    GetPrivateProfileString(_T("Interface"), key, _T(""), value, 64, g_interfaceIniPath);
+    if (!value[0]) return fallback;
+    int r = GetRValue(fallback), g = GetGValue(fallback), b = GetBValue(fallback);
+    if (_stscanf_s(value, _T("%d , %d , %d"), &r, &g, &b) != 3) return fallback;
+    if (r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255) return fallback;
+    return RGB(r, g, b);
+}
+static void LoadInterfaceColors() {
+    g_uiBackground = ReadIniRgb(_T("Background"), RGB(49,46,72));
+    g_uiLines = ReadIniRgb(_T("Lines"), RGB(105,103,139));
+    g_uiProgress = ReadIniRgb(_T("Progress"), RGB(225,225,220));
+    g_uiTransportTop = ReadIniRgb(_T("TransportTop"), RGB(105,111,112));
+    g_uiTransportBottom = ReadIniRgb(_T("TransportBottom"), RGB(57,62,65));
+    g_uiTransportEdge = ReadIniRgb(_T("TransportEdge"), RGB(150,155,155));
+    g_progressHeight = GetPrivateProfileInt(_T("Interface"), _T("ProgressHeight"), 24, g_interfaceIniPath);
+    if (g_progressHeight < 2) g_progressHeight = 2;
+    if (g_progressHeight > 28) g_progressHeight = 28;
 }
 
 static unsigned short ReadBE16(const unsigned char* p) {
@@ -350,8 +380,8 @@ static void SaveWindow(HWND hwnd) {
 }
 static void DrawStaticBackground(HDC dc, int width, int height) {
     RECT cr = { 0, 0, width, height };
-    FillRectColor(dc, cr, RGB(49, 46, 72));
-    const COLORREF label = RGB(190, 190, 205), line = RGB(105, 103, 139);
+    FillRectColor(dc, cr, g_uiBackground);
+    const COLORREF label = RGB(190, 190, 205), line = g_uiLines;
     const int channelX = 24, presetX = 72, timelineX = 225, timelineR = width - 28;
     const int rowTop = 42, rowH = 18;
     Txt(dc, 24, 10, _T("MIDI PIXEL"), RGB(215, 218, 235), 15, FW_SEMIBOLD);
@@ -376,9 +406,9 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
         Txt(dc, timelineX, infoY + 39, info, label, 10);
     }
     int barY = height - 75;
-    FillRectColor(dc, RECT{ 0, barY, width, barY + 30 }, RGB(105, 111, 112));
-    FillRectColor(dc, RECT{ 0, barY + 30, width, height }, RGB(57, 62, 65));
-    FillRectColor(dc, RECT{ 0, barY, width, barY + 2 }, RGB(150, 155, 155));
+    FillRectColor(dc, RECT{ 0, barY, width, barY + 30 }, g_uiTransportTop);
+    FillRectColor(dc, RECT{ 0, barY + 30, width, height }, g_uiTransportBottom);
+    FillRectColor(dc, RECT{ 0, barY, width, barY + 2 }, g_uiTransportEdge);
     Txt(dc, 24, barY + 39, _T("STOP"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
     Txt(dc, 92, barY + 39, _T("PLAY"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
     Txt(dc, width / 2 - 24, barY + 39, _T("LOAD"), RGB(235, 235, 242), 13, FW_SEMIBOLD);
@@ -415,7 +445,7 @@ static void Paint(HWND hwnd) {
     if (EnsureBackBuffer(hwnd)) BitBlt(dc, ps.rcPaint.left, ps.rcPaint.top,
         ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top,
         g_backDC, ps.rcPaint.left, ps.rcPaint.top, SRCCOPY);
-    else FillRectColor(dc, ps.rcPaint, RGB(49, 46, 72));
+    else FillRectColor(dc, ps.rcPaint, g_uiBackground);
 
     const int timelineX = 225, timelineR = cr.right - 28, rowTop = 42, rowH = 18;
     for (int ch = 0; ch < MIDI_CHANNELS; ++ch) {
@@ -432,7 +462,8 @@ static void Paint(HWND hwnd) {
         }
     }
     int barY = cr.bottom - 75;
-    FillRectColor(dc, RECT{ 4, barY + 2, 4 + (g_totalUsec ? (int)((g_elapsedUsec * (cr.right - 8)) / g_totalUsec) : 0), barY + 26 }, RGB(225, 225, 220));
+    int progressY = barY + (30 - g_progressHeight) / 2;
+    FillRectColor(dc, RECT{ 4, progressY, 4 + (g_totalUsec ? (int)((g_elapsedUsec * (cr.right - 8)) / g_totalUsec) : 0), progressY + g_progressHeight }, g_uiProgress);
     Txt(dc, cr.right - 115, barY + 5, g_playing ? _T("PLAYING") : (g_finished ? _T("FINISHED") : _T("STOPPED")), RGB(235, 235, 242), 11, FW_SEMIBOLD);
     EndPaint(hwnd, &ps);
 }
@@ -471,7 +502,13 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     TCHAR* colorSlash = _tcsrchr(g_colorIniPath, (TCHAR)92);
     if (colorSlash) *(colorSlash + 1) = 0;
     _tcscat_s(g_colorIniPath, MAX_PATH, _T("CONFIG\\COLORS.INI"));
+
     LoadColorPalette();
+    lstrcpyn(g_interfaceIniPath, g_iniPath, MAX_PATH);
+    TCHAR* interfaceSlash = _tcsrchr(g_interfaceIniPath, (TCHAR)92);
+    if (interfaceSlash) *(interfaceSlash + 1) = 0;
+    _tcscat_s(g_interfaceIniPath, MAX_PATH, _T("CONFIG\\CouleursInterface.INI"));
+    LoadInterfaceColors();
     int x = GetPrivateProfileInt(_T("Window"), _T("X"), 100, g_iniPath);
     int y = GetPrivateProfileInt(_T("Window"), _T("Y"), 100, g_iniPath);
     int w = GetPrivateProfileInt(_T("Window"), _T("Width"), WIN_W, g_iniPath);
