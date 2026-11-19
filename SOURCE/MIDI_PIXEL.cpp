@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <string>
 #include <vector>
 #include <algorithm>
 
@@ -29,6 +30,7 @@ static int g_velocity[MIDI_CHANNELS][MIDI_NOTES] = {};
 static int g_program[MIDI_CHANNELS] = {};
 static unsigned long long g_totalUsec = 0, g_elapsedUsec = 0;
 static unsigned long long g_lastMs = 0;
+static size_t g_eventIndex = 0;
 static unsigned long long g_maxTick = 0;
 static unsigned short g_division = 480;
 static unsigned int g_initialTempo = 500000;
@@ -55,6 +57,8 @@ static void ClearPlayback() {
     memset(g_velocity, 0, sizeof(g_velocity));
     memset(g_program, 0, sizeof(g_program));
     g_elapsedUsec = 0;
+    g_eventIndex = 0;
+    g_lastMs = 0;
     g_finished = false;
 }
 static bool LoadMidiFile(const TCHAR* path) {
@@ -191,10 +195,8 @@ static void AdvancePlayback(HWND hwnd) {
     unsigned long long now = GetTickCount64();
     if (g_lastMs) g_elapsedUsec += (now - g_lastMs) * 1000;
     g_lastMs = now;
-    static size_t eventIndex = 0;
-    if (g_elapsedUsec == 0) eventIndex = 0;
-    while (eventIndex < g_events.size() && g_events[eventIndex].usec <= g_elapsedUsec) {
-        const MidiEvent& e = g_events[eventIndex++];
+    while (g_eventIndex < g_events.size() && g_events[g_eventIndex].usec <= g_elapsedUsec) {
+        const MidiEvent& e = g_events[g_eventIndex++];
         if (e.type == 2) g_program[e.channel] = e.a;
         else if (e.type == 1) {
             g_active[e.channel][e.a] = 1;
@@ -310,7 +312,8 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_PAINT: Paint(hwnd); return 0;
     case WM_TIMER: AdvancePlayback(hwnd); return 0;
     case WM_LBUTTONDOWN: {
-        int x = LOWORD(lp), y = HIWORD(lp), barY = 425;
+        RECT client; GetClientRect(hwnd, &client);
+        int x = LOWORD(lp), y = HIWORD(lp), barY = client.bottom - 75;
         if (y >= barY + 30) {
             if (x < 75) StopPlayback();
             else if (x < 150) StartPlayback();
