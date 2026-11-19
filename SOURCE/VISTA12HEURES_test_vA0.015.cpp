@@ -62,7 +62,6 @@ static unsigned char g_initialTimeNumerator = 4, g_initialTimeDenominatorPower =
 static unsigned char g_currentTimeNumerator = 4, g_currentTimeDenominatorPower = 2;
 static bool g_loaded = false, g_playing = false, g_finished = false;
 static HMIDIOUT g_midiOut = NULL;
-static UINT g_midiDevice = 0;
 static void DestroyBackBuffer();
 static HDC g_backDC = NULL;
 static HBITMAP g_backBitmap = NULL;
@@ -234,7 +233,6 @@ static bool OpenMidiOutput(HWND owner) {
         if (_tcsnicmp(caps.szPname, target, _tcslen(target)) != 0) continue;
         MMRESULT result = midiOutOpen(&g_midiOut, i, 0, 0, CALLBACK_NULL);
         if (result == MMSYSERR_NOERROR) {
-            g_midiDevice = i;
             AllNotesOff();
             return true;
         }
