@@ -46,7 +46,9 @@ static int g_firstVisibleNote = 12;
 static int g_lastVisibleNote = 115;
 static COLORREF g_linesC3Color = RGB(255, 210, 90);
 static COLORREF g_linesCColor = RGB(125, 145, 190);
-static int g_program[MIDI_CHANNELS] = {};\nstatic int g_initialProgram[MIDI_CHANNELS] = {};\nstatic TCHAR g_programNames[128][64] = {};
+static int g_program[MIDI_CHANNELS] = {};
+static int g_initialProgram[MIDI_CHANNELS] = {};
+static TCHAR g_programNames[128][64] = {};
 static unsigned long long g_totalUsec = 0, g_elapsedUsec = 0;
 static unsigned long long g_lastMs = 0;
 static size_t g_eventIndex = 0;
@@ -162,7 +164,7 @@ static bool ReadXmlAttribute(const std::string& tag, const char* attribute, std:
 static void LoadProgramNames() {
     TCHAR path[MAX_PATH];
     lstrcpyn(path, g_iniPath, MAX_PATH);
-    TCHAR* slash = _tcsrchr(path, _T('\\\\'));
+    TCHAR* slash = _tcsrchr(path, _T('\\'));
     if (slash) *(slash + 1) = 0;
     _tcscat_s(path, MAX_PATH, _T("GM-XG.XML"));
 
@@ -203,10 +205,11 @@ static void LoadProgramNames() {
         pos = end + 1;
     }
 }
-\nstatic void ClearPlayback() {
+
+static void ClearPlayback() {
     memset(g_active, 0, sizeof(g_active));
     memset(g_velocity, 0, sizeof(g_velocity));
-    memset(g_program, 0, sizeof(g_program));
+    memcpy(g_program, g_initialProgram, sizeof(g_program));
     g_elapsedUsec = 0;
     g_eventIndex = 0;
     g_lastMs = 0;
@@ -332,6 +335,15 @@ static bool LoadMidiFile(const TCHAR* path) {
 
     g_events.swap(events);
     g_tracks.swap(tracks);
+    memset(g_initialProgram, 0, sizeof(g_initialProgram));
+    bool initialProgramFound[MIDI_CHANNELS] = {};
+    for (size_t i = 0; i < g_events.size(); ++i) {
+        const MidiEvent& e = g_events[i];
+        if (e.type == 2 && !initialProgramFound[e.channel]) {
+            g_initialProgram[e.channel] = e.a;
+            initialProgramFound[e.channel] = true;
+        }
+    }
     g_division = division;
     g_initialTempo = tempos.empty() ? 500000 : tempos[0].usecPerQuarter;
     g_maxTick = maxTick;
@@ -452,7 +464,8 @@ static void TxtClipped(HDC dc, RECT r, LPCTSTR s, COLORREF color, int size = 9, 
     SelectObject(dc, old);
     DeleteObject(f);
 }
-\nstatic void DrawLine(HDC dc, int x1, int y, int x2, COLORREF color) {
+
+static void DrawLine(HDC dc, int x1, int y, int x2, COLORREF color) {
     HPEN p = CreatePen(PS_SOLID, g_lineThickness, color); HPEN old = (HPEN)SelectObject(dc, p);
     MoveToEx(dc, x1, y, NULL); LineTo(dc, x2, y); SelectObject(dc, old); DeleteObject(p);
 }
