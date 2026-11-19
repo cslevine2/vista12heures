@@ -521,8 +521,8 @@ static void StartPlayback() {
     if (!g_loaded) return;
     if (g_finished || g_elapsedUsec >= g_totalUsec) ClearPlayback();
     g_playing = true;
-    g_lastMs = GetTickCount64();
-}
+    ResumeActiveNotes();
+    g_lastMs = GetTickCount64();}
 static void SeekPlayback(HWND hwnd, int x) {
     if (!g_loaded || g_totalUsec == 0) return;
     RECT client; GetClientRect(hwnd, &client);
@@ -547,7 +547,7 @@ static void SeekPlayback(HWND hwnd, int x) {
     g_finished = (target >= g_totalUsec);
     for (int ch = 0; ch < MIDI_CHANNELS; ++ch)
         SendMidiShort((unsigned char)(0xC0 | ch), (unsigned char)g_program[ch], 0);
-    ResumeActiveNotes();
+    if (resume) ResumeActiveNotes();
     g_playing = resume && !g_finished;
     g_lastMs = g_playing ? GetTickCount64() : 0;
     InvalidateDynamic(hwnd);
@@ -752,7 +752,7 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_KEYDOWN:
         if (wp == VK_SPACE) {
             if (g_playing) { g_playing = false; g_lastMs = 0; AllNotesOff(); }
-            else { StartPlayback(); ResumeActiveNotes(); }
+            else { StartPlayback(); }
             InvalidateDynamic(hwnd);
             return 0;
         }
