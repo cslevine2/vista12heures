@@ -9,7 +9,7 @@
 #include <vector>
 #include <algorithm>
 
-static const TCHAR VERSION[] = _T("vA0.006");
+static const TCHAR VERSION[] = _T("vA0.007");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -35,6 +35,10 @@ static unsigned long long g_maxTick = 0;
 static unsigned short g_division = 480;
 static unsigned int g_initialTempo = 500000;
 static bool g_loaded = false, g_playing = false, g_finished = false;
+static HDC g_backDC = NULL;
+static HBITMAP g_backBitmap = NULL;
+static HBITMAP g_oldBackBitmap = NULL;
+static int g_backWidth = 0, g_backHeight = 0;
 
 static unsigned short ReadBE16(const unsigned char* p) {
     return (unsigned short)((p[0] << 8) | p[1]);
@@ -190,27 +194,60 @@ static bool LoadMidiFile(const TCHAR* path) {
     ClearPlayback();
     return true;
 }
+static RECT NoteRect(int channel, int note, int clientWidth) {
+    const int timelineX = 225, timelineR = clientWidth - 28, rowTop = 42, rowH = 18;
+    int x = timelineX + (note * (timelineR - timelineX - 4)) / 127;
+    int y = rowTop + channel * rowH - 7;
+    RECT r = { x, y, x + 4, y + 6 };
+    return r;
+}
+static void InvalidateDynamic(HWND hwnd) {
+    RECT r;
+    GetClientRect(hwnd, &r);
+    RECT notes = { 220, 32, r.right - 20, 42 + MIDI_CHANNELS * 18 };
+    InvalidateRect(hwnd, &notes, FALSE);
+    RECT presets = { 68, 32, 130, 42 + MIDI_CHANNELS * 18 };
+    InvalidateRect(hwnd, &presets, FALSE);
+    RECT progress = { 0, r.bottom - 75, r.right, r.bottom - 40 };
+    InvalidateRect(hwnd, &progress, FALSE);
+}
 static void AdvancePlayback(HWND hwnd) {
     if (!g_playing) return;
     unsigned long long now = GetTickCount64();
     if (g_lastMs) g_elapsedUsec += (now - g_lastMs) * 1000;
     g_lastMs = now;
+    bool dynamicChanged = false;
     while (g_eventIndex < g_events.size() && g_events[g_eventIndex].usec <= g_elapsedUsec) {
         const MidiEvent& e = g_events[g_eventIndex++];
-        if (e.type == 2) g_program[e.channel] = e.a;
-        else if (e.type == 1) {
-            g_active[e.channel][e.a] = 1;
-            g_velocity[e.channel][e.a] = e.b;
+        if (e.type == 2) {
+            if (g_program[e.channel] != e.a) {
+                g_program[e.channel] = e.a;
+                RECT pr = { 68, 42 + e.channel * 18 - 6, 130, 42 + e.channel * 18 + 12 };
+                InvalidateRect(hwnd, &pr, FALSE);
+            }
         } else {
-            g_active[e.channel][e.a] = 0;
-            g_velocity[e.channel][e.a] = 0;
+            RECT oldRect = NoteRect(e.channel, e.a, 760);
+            if (e.type == 1) {
+                g_active[e.channel][e.a] = 1;
+                g_velocity[e.channel][e.a] = e.b;
+            } else {
+                g_active[e.channel][e.a] = 0;
+                g_velocity[e.channel][e.a] = 0;
+            }
+            RECT newRect = NoteRect(e.channel, e.a, 760);
+            InvalidateRect(hwnd, &oldRect, FALSE);
+            InvalidateRect(hwnd, &newRect, FALSE);
+            dynamicChanged = true;
         }
     }
     if (g_elapsedUsec >= g_totalUsec) {
         g_playing = false;
         g_finished = true;
     }
-    InvalidateRect(hwnd, NULL, FALSE);
+    RECT client; GetClientRect(hwnd, &client);
+    RECT progress = { 0, client.bottom - 75, client.right, client.bottom };
+    InvalidateRect(hwnd, &progress, FALSE);
+    (void)dynamicChanged;
 }
 static void StartPlayback() {
     if (!g_loaded) return;
@@ -237,7 +274,7 @@ static void LoadDialog(HWND hwnd) {
             lstrcpyn(g_fileName, path, MAX_PATH);
             TCHAR* base = _tcsrchr(g_fileName, _T('\\'));
             if (base) lstrcpyn(g_fileName, base + 1, MAX_PATH);
-            InvalidateRect(hwnd, NULL, TRUE);
+            DestroyBackBuffer(); InvalidateRect(hwnd, NULL, FALSE); InvalidateDynamic(hwnd);
         } else {
             MessageBox(hwnd, _T("Fichier MIDI non reconnu ou format non pris en charge."), _T("MIDI PIXEL"), MB_ICONWARNING | MB_OK);
         }
@@ -265,38 +302,26 @@ static void SaveWindow(HWND hwnd) {
     _stprintf_s(n, _T("%d"), r.right - r.left); WritePrivateProfileString(_T("Window"), _T("Width"), n, g_iniPath);
     _stprintf_s(n, _T("%d"), r.bottom - r.top); WritePrivateProfileString(_T("Window"), _T("Height"), n, g_iniPath);
 }
-static void Paint(HWND hwnd) {
-    PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
-    RECT cr; GetClientRect(hwnd, &cr);
+static void DrawStaticBackground(HDC dc, int width, int height) {
+    RECT cr = { 0, 0, width, height };
     FillRectColor(dc, cr, RGB(49, 46, 72));
-    const COLORREF label = RGB(190, 190, 205), line = RGB(105, 103, 139), white = RGB(235, 235, 242);
-    const int channelX = 24, presetX = 72, timelineX = 225, timelineR = cr.right - 28;
+    const COLORREF label = RGB(190, 190, 205), line = RGB(105, 103, 139);
+    const int channelX = 24, presetX = 72, timelineX = 225, timelineR = width - 28;
     const int rowTop = 42, rowH = 18;
     Txt(dc, 24, 10, _T("MIDI PIXEL"), RGB(215, 218, 235), 15, FW_SEMIBOLD);
-    Txt(dc, cr.right - 82, 12, VERSION, RGB(155, 160, 190), 11);
+    Txt(dc, width - 82, 12, VERSION, RGB(155, 160, 190), 11);
     Txt(dc, channelX, 27, _T("CH"), label, 9, FW_SEMIBOLD);
     Txt(dc, presetX, 27, _T("GM-PRESET"), label, 9, FW_SEMIBOLD);
     for (int i = 0; i < MIDI_CHANNELS; ++i) {
         int y = rowTop + i * rowH;
-        TCHAR channelText[8], presetText[8];
+        TCHAR channelText[8];
         _stprintf_s(channelText, _T("%02d"), i + 1);
-        _stprintf_s(presetText, _T("%03d"), g_program[i] + 1);
         Txt(dc, channelX, y - 5, channelText, label, 10);
-        Txt(dc, presetX, y - 5, g_loaded ? presetText : _T("---"), RGB(160, 170, 195), 10);
         DrawLine(dc, timelineX, y + 2, timelineR, line);
-        if (g_loaded) {
-            for (int note = 0; note < MIDI_NOTES; ++note) {
-                if (!g_active[i][note]) continue;
-                int x = timelineX + (note * (timelineR - timelineX - 4)) / 127;
-                int intensity = 170 + (g_velocity[i][note] * 85) / 127;
-                COLORREF c = RGB(intensity, intensity, 245);
-                FillRectColor(dc, RECT{ x, y - 7, x + 4, y - 1 }, c);
-            }
-        }
     }
     int infoY = rowTop + MIDI_CHANNELS * rowH + 8;
     Txt(dc, channelX, infoY, _T("MIDI FILE"), label, 10);
-    Txt(dc, timelineX, infoY, g_fileName[0] ? g_fileName : _T("No MIDI file loaded"), white, 14);
+    Txt(dc, timelineX, infoY, g_fileName[0] ? g_fileName : _T("No MIDI file loaded"), RGB(235, 235, 242), 14);
     TCHAR info[128];
     if (g_loaded) {
         _stprintf_s(info, _T("%u tracks   /   %u ticks per quarter"), (unsigned int)g_tracks.size(), (unsigned int)g_division);
@@ -304,22 +329,72 @@ static void Paint(HWND hwnd) {
         _stprintf_s(info, _T("tempo initial : %u BPM"), (unsigned int)(60000000ULL / g_initialTempo));
         Txt(dc, timelineX, infoY + 39, info, label, 10);
     }
+    int barY = height - 75;
+    FillRectColor(dc, RECT{ 0, barY, width, barY + 30 }, RGB(105, 111, 112));
+    FillRectColor(dc, RECT{ 0, barY + 30, width, height }, RGB(57, 62, 65));
+    FillRectColor(dc, RECT{ 0, barY, width, barY + 2 }, RGB(150, 155, 155));
+    Txt(dc, 24, barY + 39, _T("STOP"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
+    Txt(dc, 92, barY + 39, _T("PLAY"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
+    Txt(dc, width / 2 - 24, barY + 39, _T("LOAD"), RGB(235, 235, 242), 13, FW_SEMIBOLD);
+    Txt(dc, width / 2 + 45, barY + 39, _T("Options"), label, 13);
+}
+static void DestroyBackBuffer() {
+    if (g_backDC) {
+        if (g_oldBackBitmap) SelectObject(g_backDC, g_oldBackBitmap);
+        if (g_backBitmap) DeleteObject(g_backBitmap);
+        DeleteDC(g_backDC);
+    }
+    g_backDC = NULL; g_backBitmap = NULL; g_oldBackBitmap = NULL;
+    g_backWidth = g_backHeight = 0;
+}
+static bool EnsureBackBuffer(HWND hwnd) {
+    RECT cr; GetClientRect(hwnd, &cr);
+    int width = cr.right, height = cr.bottom;
+    if (g_backDC && width == g_backWidth && height == g_backHeight) return true;
+    DestroyBackBuffer();
+    HDC screen = GetDC(hwnd);
+    if (!screen) return false;
+    g_backDC = CreateCompatibleDC(screen);
+    g_backBitmap = CreateCompatibleBitmap(screen, width, height);
+    ReleaseDC(hwnd, screen);
+    if (!g_backDC || !g_backBitmap) { DestroyBackBuffer(); return false; }
+    g_oldBackBitmap = (HBITMAP)SelectObject(g_backDC, g_backBitmap);
+    g_backWidth = width; g_backHeight = height;
+    DrawStaticBackground(g_backDC, width, height);
+    return true;
+}
+static void Paint(HWND hwnd) {
+    PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
+    RECT cr; GetClientRect(hwnd, &cr);
+    if (EnsureBackBuffer(hwnd)) BitBlt(dc, ps.rcPaint.left, ps.rcPaint.top,
+        ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top,
+        g_backDC, ps.rcPaint.left, ps.rcPaint.top, SRCCOPY);
+    else FillRectColor(dc, ps.rcPaint, RGB(49, 46, 72));
+
+    const int timelineX = 225, timelineR = cr.right - 28, rowTop = 42, rowH = 18;
+    for (int ch = 0; ch < MIDI_CHANNELS; ++ch) {
+        TCHAR presetText[8];
+        _stprintf_s(presetText, _T("%03d"), g_program[ch] + 1);
+        Txt(dc, 72, rowTop + ch * rowH - 5, g_loaded ? presetText : _T("---"), RGB(160, 170, 195), 10);
+        if (!g_loaded) continue;
+        for (int note = 0; note < MIDI_NOTES; ++note) {
+            if (!g_active[ch][note]) continue;
+            RECT nr = NoteRect(ch, note, cr.right);
+            if (nr.right < ps.rcPaint.left || nr.left > ps.rcPaint.right ||
+                nr.bottom < ps.rcPaint.top || nr.top > ps.rcPaint.bottom) continue;
+            int intensity = 170 + (g_velocity[ch][note] * 85) / 127;
+            FillRectColor(dc, nr, RGB(intensity, intensity, 245));
+        }
+    }
     int barY = cr.bottom - 75;
-    FillRectColor(dc, RECT{ 0, barY, cr.right, barY + 30 }, RGB(105, 111, 112));
-    FillRectColor(dc, RECT{ 0, barY + 30, cr.right, cr.bottom }, RGB(57, 62, 65));
-    FillRectColor(dc, RECT{ 0, barY, cr.right, barY + 2 }, RGB(150, 155, 155));
-    int progressW = g_totalUsec ? (int)((g_elapsedUsec * (cr.right - 8)) / g_totalUsec) : 0;
-    FillRectColor(dc, RECT{ 4, barY + 2, 4 + progressW, barY + 26 }, RGB(225, 225, 220));
-    Txt(dc, cr.right - 115, barY + 5, g_playing ? _T("PLAYING") : (g_finished ? _T("FINISHED") : _T("STOPPED")), white, 11, FW_SEMIBOLD);
-    Txt(dc, 24, barY + 39, _T("STOP"), white, 12, FW_SEMIBOLD);
-    Txt(dc, 92, barY + 39, _T("PLAY"), white, 12, FW_SEMIBOLD);
-    Txt(dc, cr.right / 2 - 24, barY + 39, _T("LOAD"), white, 13, FW_SEMIBOLD);
-    Txt(dc, cr.right / 2 + 45, barY + 39, _T("Options"), label, 13);
+    FillRectColor(dc, RECT{ 4, barY + 2, 4 + (g_totalUsec ? (int)((g_elapsedUsec * (cr.right - 8)) / g_totalUsec) : 0), barY + 26 }, RGB(225, 225, 220));
+    Txt(dc, cr.right - 115, barY + 5, g_playing ? _T("PLAYING") : (g_finished ? _T("FINISHED") : _T("STOPPED")), RGB(235, 235, 242), 11, FW_SEMIBOLD);
     EndPaint(hwnd, &ps);
 }
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_PAINT: Paint(hwnd); return 0;
+    case WM_SIZE: DestroyBackBuffer(); InvalidateRect(hwnd, NULL, FALSE); return 0;
     case WM_TIMER: AdvancePlayback(hwnd); return 0;
     case WM_LBUTTONDOWN: {
         RECT client; GetClientRect(hwnd, &client);
@@ -328,15 +403,15 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             if (x < 75) StopPlayback();
             else if (x < 150) StartPlayback();
             else if (x >= 260 && x < 390) LoadDialog(hwnd);
-            InvalidateRect(hwnd, NULL, TRUE);
+            InvalidateDynamic(hwnd);
         }
         return 0;
     }
     case WM_KEYDOWN:
-        if (wp == VK_SPACE) { if (g_playing) g_playing = false; else StartPlayback(); InvalidateRect(hwnd, NULL, TRUE); return 0; }
-        if (wp == VK_ESCAPE) { StopPlayback(); InvalidateRect(hwnd, NULL, TRUE); return 0; }
+        if (wp == VK_SPACE) { if (g_playing) g_playing = false; else StartPlayback(); InvalidateDynamic(hwnd); return 0; }
+        if (wp == VK_ESCAPE) { StopPlayback(); InvalidateDynamic(hwnd); return 0; }
         break;
-    case WM_CLOSE: KillTimer(hwnd, 1); SaveWindow(hwnd); DestroyWindow(hwnd); return 0;
+    case WM_CLOSE: KillTimer(hwnd, 1); SaveWindow(hwnd); DestroyBackBuffer(); DestroyWindow(hwnd); return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
     }
     return DefWindowProc(hwnd, msg, wp, lp);
