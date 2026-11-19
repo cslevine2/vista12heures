@@ -82,3 +82,8 @@ Added short markers directly over each channel guide line at every visible C not
 ## 2026-11-19 — INI marker-color fix vA0.013
 
 Corrected the RGB reader so it receives the INI section explicitly. Interface colors continue to load from [Interface], while LinesC3color and LinesCcolor are now read from [Display]. Bumped the executable and displayed application version to vA0.013; source file is SOURCE/VISTA12HEURES_test_vA0.012.cpp.
+
+
+## 2026-11-19 — GM program labels vA0.014
+
+Added an external `GM-XG.XML` program-name table containing the 128 standard General MIDI Level 1 programs. The sixteen channel rows now display the current Program Change number (1–128) and its matching name when the XML table is available. The first Program Change encountered for each channel is shown immediately after loading; subsequent Program Change events update the display during playback. The XML file is optional, and the numeric program value remains visible without it. XG variation-bank selection is intentionally left for a later extension. The executable is `VISTA12HEURES_test_vA0.014.exe`; source is `SOURCE/VISTA12HEURES_test_vA0.013.cpp`.
