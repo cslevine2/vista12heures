@@ -3,7 +3,7 @@
 #include <tchar.h>
 #include <cstdio>
 
-static const TCHAR VERSION[] = _T("vA0.003");
+static const TCHAR VERSION[] = _T("vA0.004");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static const int WIN_W = 760;
 static const int WIN_H = 500;
@@ -87,7 +87,7 @@ static void Paint(HWND hwnd) {
     };
     for (int i = 0; i < sizeof(events)/sizeof(events[0]); ++i) {
         int x = timelineX + events[i][1];
-        int y = rowTop + events[i][0] * rowH - 1;
+        int y = rowTop + events[i][0] * rowH - 7;
         Fill(dc, x, y, 3, 6, white);
     }
 
