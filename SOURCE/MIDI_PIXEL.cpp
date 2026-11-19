@@ -3,140 +3,156 @@
 #include <tchar.h>
 #include <cstdio>
 
-static const TCHAR VERSION[] = _T("vA0.002");
-static const int CHANNELS = 16;
-static const int NOTES = 128;
-static const int LEFT = 118;
-static const int TOP = 92;
-static const int ROW_H = 24;
-static const int CELL_W = 5;
-static const int GRID_W = NOTES * CELL_W;
-static const int MARKER_SIZE = 7;
-static DWORD g_start = 0;
+static const TCHAR VERSION[] = _T("vA0.003");
+static TCHAR g_iniPath[MAX_PATH] = {};
+static const int WIN_W = 760;
+static const int WIN_H = 500;
 
-static COLORREF pitchColors[12] = {
-    RGB(230, 82, 82), RGB(225, 125, 65), RGB(220, 175, 65),
-    RGB(175, 205, 70), RGB(95, 195, 95), RGB(65, 190, 155),
-    RGB(65, 175, 205), RGB(75, 125, 220), RGB(115, 100, 220),
-    RGB(165, 95, 205), RGB(205, 90, 165), RGB(220, 90, 115)
+static const TCHAR* tracks[] = {
+    _T("Piccolo"), _T("Clarinette"), _T(""), _T("Drums"),
+    _T("Lead / sawtooth 1"), _T("Brass"), _T("Strings Ensemble"),
+    _T("Synth"), _T("Acoustic Grand Piano 2"), _T("Acoustic Guitar 1"),
+    _T("Syn Bass 1"), _T("")
 };
+static const int TRACK_COUNT = sizeof(tracks) / sizeof(tracks[0]);
 
 static void Fill(HDC dc, int x, int y, int w, int h, COLORREF color) {
-    HBRUSH brush = CreateSolidBrush(color);
+    HBRUSH b = CreateSolidBrush(color);
     RECT r = { x, y, x + w, y + h };
-    FillRect(dc, &r, brush);
-    DeleteObject(brush);
+    FillRect(dc, &r, b);
+    DeleteObject(b);
 }
-
-static void Text(HDC dc, int x, int y, LPCTSTR value, COLORREF color, int height = 18) {
-    SetTextColor(dc, color);
+static void Txt(HDC dc, int x, int y, LPCTSTR s, COLORREF color, int size = 13, int weight = FW_NORMAL) {
     SetBkMode(dc, TRANSPARENT);
-    HFONT font = CreateFont(height, 0, 0, 0, FW_NORMAL, FALSE, FALSE, FALSE,
-        DEFAULT_CHARSET, OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS,
-        CLEARTYPE_QUALITY, DEFAULT_PITCH | FF_DONTCARE, _T("Segoe UI"));
-    HFONT old = (HFONT)SelectObject(dc, font);
-    TextOut(dc, x, y, value, lstrlen(value));
+    SetTextColor(dc, color);
+    HFONT f = CreateFont(size, 0, 0, 0, weight, FALSE, FALSE, FALSE, DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS, CLIP_DEFAULT_PRECIS, CLEARTYPE_QUALITY,
+        DEFAULT_PITCH | FF_DONTCARE, _T("Segoe UI"));
+    HFONT old = (HFONT)SelectObject(dc, f);
+    TextOut(dc, x, y, s, lstrlen(s));
     SelectObject(dc, old);
-    DeleteObject(font);
+    DeleteObject(f);
 }
-
+static void DrawLine(HDC dc, int x1, int y, int x2, COLORREF color) {
+    HPEN p = CreatePen(PS_SOLID, 2, color);
+    HPEN old = (HPEN)SelectObject(dc, p);
+    MoveToEx(dc, x1, y, NULL); LineTo(dc, x2, y);
+    SelectObject(dc, old); DeleteObject(p);
+}
+static void SaveWindow(HWND hwnd) {
+    if (IsIconic(hwnd) || IsZoomed(hwnd)) return;
+    RECT r;
+    if (!GetWindowRect(hwnd, &r)) return;
+    TCHAR n[32];
+    _stprintf_s(n, _T("%d"), r.left); WritePrivateProfileString(_T("Window"), _T("X"), n, g_iniPath);
+    _stprintf_s(n, _T("%d"), r.top); WritePrivateProfileString(_T("Window"), _T("Y"), n, g_iniPath);
+    _stprintf_s(n, _T("%d"), r.right-r.left); WritePrivateProfileString(_T("Window"), _T("Width"), n, g_iniPath);
+    _stprintf_s(n, _T("%d"), r.bottom-r.top); WritePrivateProfileString(_T("Window"), _T("Height"), n, g_iniPath);
+}
 static void Paint(HWND hwnd) {
-    PAINTSTRUCT ps;
-    HDC dc = BeginPaint(hwnd, &ps);
-    RECT client;
-    GetClientRect(hwnd, &client);
-    Fill(dc, 0, 0, client.right, client.bottom, RGB(0, 0, 0));
+    PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
+    RECT cr; GetClientRect(hwnd, &cr);
+    Fill(dc, 0, 0, cr.right, cr.bottom, RGB(49, 46, 72));
 
-    Text(dc, 24, 18, _T("MIDI PIXEL"), RGB(235, 240, 246), 30);
-    Text(dc, 25, 53, _T("VISTA12HEURES_TEST  ") , RGB(115, 165, 215), 15);
-    Text(dc, 225, 53, VERSION, RGB(135, 151, 170), 15);
+    const COLORREF label = RGB(190, 190, 205);
+    const COLORREF line = RGB(105, 103, 139);
+    const COLORREF faint = RGB(75, 75, 105);
+    const COLORREF white = RGB(235, 235, 242);
+    const int labelX = 24, timelineX = 225, timelineR = cr.right - 28;
+    const int rowTop = 28, rowH = 20;
 
-    // Octave labels only: no vertical cell dividers or note-grid separators.
-    for (int n = 0; n < NOTES; ++n) {
-        if ((n % 12) == 0) {
-            int x = LEFT + n * CELL_W;
-            TCHAR label[16];
-            _stprintf_s(label, _T("C%d"), (n / 12) - 1);
-            Text(dc, x - 3, TOP - 29, label, RGB(150, 170, 195), 13);
+    Txt(dc, 24, 10, _T("MIDI PIXEL"), RGB(215, 218, 235), 15, FW_SEMIBOLD);
+    Txt(dc, cr.right - 82, 12, VERSION, RGB(155, 160, 190), 11);
+
+    // Compact track overview: instrument names at left, note events on clean horizontal lanes.
+    for (int i = 0; i < TRACK_COUNT; ++i) {
+        int y = rowTop + i * rowH;
+        if (tracks[i][0]) Txt(dc, labelX, y - 5, tracks[i], label, 10);
+        DrawLine(dc, timelineX, y + 2, timelineR, line);
+        for (int k = 0; k < 3; ++k) {
+            int tickX = timelineX + 70 + ((i * 47 + k * 83) % (timelineR - timelineX - 100));
+            Fill(dc, tickX, y, 2, 5, faint);
         }
     }
 
-    DWORD tick = GetTickCount() - g_start;
-    int phase = (int)(tick / 240);
-    for (int ch = 0; ch < CHANNELS; ++ch) {
-        int y = TOP + ch * ROW_H;
-        TCHAR channel[8];
-        _stprintf_s(channel, _T("%02d"), ch + 1);
-        Text(dc, 25, y + 3, channel, RGB(145, 160, 180), 15);
-
-        // One clean horizontal guide per channel row.
-        Fill(dc, LEFT, y + ROW_H - 2, GRID_W, 2, RGB(30, 92, 155));
-
-        // Synthetic square markers for layout testing only.
-        for (int k = 0; k < 5; ++k) {
-            int note = (ch * 7 + k * 19 + phase * (k + 1)) % NOTES;
-            int x = LEFT + note * CELL_W + (CELL_W - MARKER_SIZE) / 2;
-            int markerY = y + (ROW_H - MARKER_SIZE) / 2 - 1;
-            Fill(dc, x, markerY, MARKER_SIZE, MARKER_SIZE, pitchColors[note % 12]);
-        }
+    // Illustrative events only, to establish the compact visual language.
+    const int events[][4] = {
+        {0, 390, 0, 0}, {1, 145, 0, 0},
+        {3, 40, 0, 0}, {3, 55, 0, 0}, {3, 105, 0, 0},
+        {4, 285, 0, 0}, {5, 310, 0, 0}, {5, 365, 0, 0},
+        {6, 260, 0, 0}, {6, 315, 0, 0}, {6, 360, 0, 0},
+        {7, 330, 0, 0}, {8, 180, 0, 0}, {8, 225, 0, 0},
+        {8, 245, 0, 0}, {8, 260, 0, 0}, {9, 120, 0, 0},
+        {10, 80, 0, 0}
+    };
+    for (int i = 0; i < sizeof(events)/sizeof(events[0]); ++i) {
+        int x = timelineX + events[i][1];
+        int y = rowTop + events[i][0] * rowH - 1;
+        Fill(dc, x, y, 3, 6, white);
     }
 
-    int footerY = TOP + CHANNELS * ROW_H + 20;
-    Fill(dc, 24, footerY, client.right - 48, 1, RGB(55, 65, 78));
-    Text(dc, 25, footerY + 12, _T("STOP    PAUSE    BACKWARD    FORWARD"), RGB(185, 197, 211), 16);
-    Text(dc, client.right - 116, footerY + 12, _T("PLAY  >"), RGB(120, 220, 155), 16);
-    Text(dc, 25, footerY + 39,
-         _T("ALPHA DISPLAY TEST - SYNTHETIC NOTES ONLY - NO MIDI FILE PLAYBACK"),
-         RGB(235, 178, 92), 13);
+    int metaY = rowTop + TRACK_COUNT * rowH + 18;
+    Txt(dc, labelX, metaY, _T("MIDI comments"), label, 10);
+    Txt(dc, timelineX, metaY, _T("comments   - standard MIDI text"), RGB(190, 190, 205), 12);
+    Txt(dc, timelineX, metaY + 17, _T("comment line 2"), RGB(190, 190, 205), 12);
+    Txt(dc, timelineX, metaY + 48, _T("Jour_de_fete.MID"), white, 19);
+    Txt(dc, cr.right - 125, metaY + 38, _T("tempo   120"), label, 12);
+    Txt(dc, cr.right - 125, metaY + 57, _T("MEASURE   23"), label, 12);
+    Txt(dc, cr.right - 125, metaY + 76, _T("signature   4 / 4"), label, 12);
 
+    int barY = cr.bottom - 75;
+    Fill(dc, 0, barY, cr.right, 30, RGB(105, 111, 112));
+    Fill(dc, 0, barY + 30, cr.right, 45, RGB(57, 62, 65));
+    Fill(dc, 0, barY, cr.right, 2, RGB(150, 155, 155));
+    Fill(dc, 0, barY + 29, cr.right, 1, RGB(30, 34, 36));
+    Fill(dc, 215, barY + 2, 5, 26, RGB(225, 225, 220));
+    Txt(dc, cr.right - 145, barY + 5, _T("00:25:39 / 01:03:55"), white, 12, FW_SEMIBOLD);
+
+    Txt(dc, 24, barY + 39, _T(">     ■     <     >     |>>"), white, 16);
+    Txt(dc, cr.right / 2 - 24, barY + 40, _T("LOAD"), white, 13, FW_SEMIBOLD);
+    Txt(dc, cr.right / 2 + 45, barY + 40, _T("Options"), label, 13);
+    Txt(dc, cr.right - 118, barY + 40, _T("VOL  |||||||"), white, 12);
     EndPaint(hwnd, &ps);
 }
-
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
-    case WM_CREATE:
-        g_start = GetTickCount();
-        SetTimer(hwnd, 1, 80, NULL);
-        return 0;
-    case WM_TIMER:
-        InvalidateRect(hwnd, NULL, FALSE);
-        return 0;
-    case WM_PAINT:
-        Paint(hwnd);
-        return 0;
-    case WM_ERASEBKGND:
-        return 1;
-    case WM_DESTROY:
-        KillTimer(hwnd, 1);
-        PostQuitMessage(0);
-        return 0;
+    case WM_PAINT: Paint(hwnd); return 0;
+    case WM_CLOSE: SaveWindow(hwnd); DestroyWindow(hwnd); return 0;
+    case WM_DESTROY: PostQuitMessage(0); return 0;
     }
     return DefWindowProc(hwnd, msg, wp, lp);
 }
-
 int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
+    TCHAR exe[MAX_PATH];
+    GetModuleFileName(NULL, exe, MAX_PATH);
+    lstrcpyn(g_iniPath, exe, MAX_PATH);
+    TCHAR* slash = _tcsrchr(g_iniPath, _T('\\'));
+    if (slash) *(slash + 1) = 0;
+    lstrcat_s(g_iniPath, _T("SETTINGS.INI"));
+
+    int x = GetPrivateProfileInt(_T("Window"), _T("X"), 100, g_iniPath);
+    int y = GetPrivateProfileInt(_T("Window"), _T("Y"), 100, g_iniPath);
+    int w = GetPrivateProfileInt(_T("Window"), _T("Width"), WIN_W, g_iniPath);
+    int h = GetPrivateProfileInt(_T("Window"), _T("Height"), WIN_H, g_iniPath);
+    if (w < 500 || w > 2000) w = WIN_W;
+    if (h < 350 || h > 1400) h = WIN_H;
+
     const TCHAR CLASS_NAME[] = _T("MIDI_PIXEL_FIRST_WINDOW");
     WNDCLASS wc = {};
-    wc.lpfnWndProc = WindowProc;
-    wc.hInstance = instance;
-    wc.lpszClassName = CLASS_NAME;
-    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.lpfnWndProc = WindowProc; wc.hInstance = instance;
+    wc.lpszClassName = CLASS_NAME; wc.hCursor = LoadCursor(NULL, IDC_ARROW);
     wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     if (!RegisterClass(&wc)) return 1;
 
-    TCHAR title[128];
-    _stprintf_s(title, _T("VISTA12HEURES_test %s"), VERSION);
+    TCHAR title[128]; _stprintf_s(title, _T("VISTA12HEURES_test %s"), VERSION);
+    // Fixed-size for this alpha; resizing can be added once the layout is ready to scale.
     HWND hwnd = CreateWindowEx(0, CLASS_NAME, title,
-        WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 650,
-        NULL, NULL, instance, NULL);
+        WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+        x, y, w, h, NULL, NULL, instance, NULL);
     if (!hwnd) return 2;
-    ShowWindow(hwnd, show);
-    UpdateWindow(hwnd);
-
-    MSG msg;
-    while (GetMessage(&msg, NULL, 0, 0) > 0) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    ShowWindow(hwnd, show); UpdateWindow(hwnd);
+    MSG msg; while (GetMessage(&msg, NULL, 0, 0) > 0) {
+        TranslateMessage(&msg); DispatchMessage(&msg);
     }
     return (int)msg.wParam;
 }
