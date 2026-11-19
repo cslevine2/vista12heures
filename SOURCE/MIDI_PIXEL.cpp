@@ -9,7 +9,7 @@
 #include <vector>
 #include <algorithm>
 
-static const TCHAR VERSION[] = _T("vA0.007");
+static const TCHAR VERSION[] = _T("vA0.008");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -197,8 +197,10 @@ static bool LoadMidiFile(const TCHAR* path) {
 }
 static RECT NoteRect(int channel, int note, int clientWidth) {
     const int timelineX = 225, timelineR = clientWidth - 28, rowTop = 42, rowH = 18;
-    int x = timelineX + (note * (timelineR - timelineX - 4)) / 127;
-    int y = rowTop + channel * rowH - 7;
+    const int firstVisibleNote = 12, lastVisibleNote = 115;
+    if (note < firstVisibleNote || note > lastVisibleNote) return RECT{ -100, -100, -96, -94 };
+    int x = timelineX + ((note - firstVisibleNote) * (timelineR - timelineX - 4)) / (lastVisibleNote - firstVisibleNote);
+    int y = rowTop + (MIDI_CHANNELS - 1 - channel) * rowH - 7;
     RECT r = { x, y, x + 4, y + 6 };
     return r;
 }
@@ -224,7 +226,7 @@ static void AdvancePlayback(HWND hwnd) {
         if (e.type == 2) {
             if (g_program[e.channel] != e.a) {
                 g_program[e.channel] = e.a;
-                RECT pr = { 68, 42 + e.channel * 18 - 6, 130, 42 + e.channel * 18 + 12 };
+                RECT pr = { 68, 42 + (MIDI_CHANNELS - 1 - e.channel) * 18 - 6, 130, 42 + (MIDI_CHANNELS - 1 - e.channel) * 18 + 12 };
                 InvalidateRect(hwnd, &pr, FALSE);
             }
         } else {
@@ -314,7 +316,7 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
     Txt(dc, channelX, 27, _T("CH"), label, 9, FW_SEMIBOLD);
     Txt(dc, presetX, 27, _T("GM-PRESET"), label, 9, FW_SEMIBOLD);
     for (int i = 0; i < MIDI_CHANNELS; ++i) {
-        int y = rowTop + i * rowH;
+        int y = rowTop + (MIDI_CHANNELS - 1 - i) * rowH;
         TCHAR channelText[8];
         _stprintf_s(channelText, _T("%02d"), i + 1);
         Txt(dc, channelX, y - 5, channelText, label, 10);
@@ -376,15 +378,15 @@ static void Paint(HWND hwnd) {
     for (int ch = 0; ch < MIDI_CHANNELS; ++ch) {
         TCHAR presetText[8];
         _stprintf_s(presetText, _T("%03d"), g_program[ch] + 1);
-        Txt(dc, 72, rowTop + ch * rowH - 5, g_loaded ? presetText : _T("---"), RGB(160, 170, 195), 10);
+        Txt(dc, 72, rowTop + (MIDI_CHANNELS - 1 - ch) * rowH - 5, g_loaded ? presetText : _T("---"), RGB(160, 170, 195), 10);
         if (!g_loaded) continue;
         for (int note = 0; note < MIDI_NOTES; ++note) {
             if (!g_active[ch][note]) continue;
             RECT nr = NoteRect(ch, note, cr.right);
             if (nr.right < ps.rcPaint.left || nr.left > ps.rcPaint.right ||
                 nr.bottom < ps.rcPaint.top || nr.top > ps.rcPaint.bottom) continue;
-            int intensity = 170 + (g_velocity[ch][note] * 85) / 127;
-            FillRectColor(dc, nr, RGB(intensity, intensity, 245));
+            int intensity = 45 + (g_velocity[ch][note] * 210) / 127;
+            FillRectColor(dc, nr, RGB(intensity, intensity, 255));
         }
     }
     int barY = cr.bottom - 75;
