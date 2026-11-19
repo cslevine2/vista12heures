@@ -396,6 +396,8 @@ static void InvalidateDynamic(HWND hwnd) {
     InvalidateRect(hwnd, &notes, FALSE);
     RECT presets = { 68, 32, 222, 42 + MIDI_CHANNELS * 18 };
     InvalidateRect(hwnd, &presets, FALSE);
+    RECT metadata = { 220, 42 + MIDI_CHANNELS * 18 + 20, 560, 42 + MIDI_CHANNELS * 18 + 65 };
+    InvalidateRect(hwnd, &metadata, FALSE);
     RECT progress = { 0, r.bottom - 75, r.right, r.bottom - 40 };
     InvalidateRect(hwnd, &progress, FALSE);
 }
