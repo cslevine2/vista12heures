@@ -52,3 +52,8 @@ The random demonstration animation is replaced by a first Standard MIDI File rea
 ## 2026-11-19 — Alpha GUI prototype vA0.007
 
 Optimized painting: the static interface is rendered into a cached memory bitmap. During playback, note ON/OFF changes invalidate only the affected marker rectangles; the progress/status strip is refreshed separately. The source file `SOURCE/MIDI_PIXEL.cpp` is included in the downloadable build artifact together with the executable and `SETTINGS.INI`.
+
+
+## 2026-11-19 — Alpha GUI prototype vA0.008
+
+Three visual refinements: channel 16 is now at the top and channel 1 at the bottom; the visible horizontal note range is narrowed to MIDI note numbers 12–115 (outside notes remain parsed but are not displayed); marker brightness is mapped to NOTE ON velocity.
