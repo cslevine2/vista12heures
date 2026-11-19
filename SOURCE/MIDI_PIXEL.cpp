@@ -112,7 +112,17 @@ static void Paint(HWND hwnd) {
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
     case WM_PAINT: Paint(hwnd); return 0;
-    case WM_TIMER:\n        for (int i = 0; i < MIDI_CHANNELS; ++i) {\n            for (int k = 0; k < 4; ++k) {\n                if ((rand() % 5) == 0) {\n                    g_noteOn[i][k] = !g_noteOn[i][k];\n                    if (g_noteOn[i][k]) g_noteX[i][k] = 12 + (rand() % 360);\n                }\n            }\n        }\n        InvalidateRect(hwnd, NULL, FALSE);\n        return 0;
+    case WM_TIMER:
+        for (int i = 0; i < MIDI_CHANNELS; ++i) {
+            for (int k = 0; k < 4; ++k) {
+                if ((rand() % 5) == 0) {
+                    g_noteOn[i][k] = !g_noteOn[i][k];
+                    if (g_noteOn[i][k]) g_noteX[i][k] = 12 + (rand() % 360);
+                }
+            }
+        }
+        InvalidateRect(hwnd, NULL, FALSE);
+        return 0;
     case WM_CLOSE: KillTimer(hwnd, 1); SaveWindow(hwnd); DestroyWindow(hwnd); return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
     }
@@ -133,7 +143,16 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     if (w < 500 || w > 2000) w = WIN_W;
     if (h < 350 || h > 1400) h = WIN_H;
 
-    srand((unsigned int)GetTickCount());\n    for (int i = 0; i < MIDI_CHANNELS; ++i) {\n        g_gmPreset[i] = i + 1; // Placeholder GM preset values (displayed 001..016).\n        for (int k = 0; k < 4; ++k) {\n            g_noteX[i][k] = 12 + (rand() % 360);\n            g_noteOn[i][k] = ((rand() % 3) == 0);\n        }\n    }\n\n    const TCHAR CLASS_NAME[] = _T("MIDI_PIXEL_FIRST_WINDOW");
+    srand((unsigned int)GetTickCount());
+    for (int i = 0; i < MIDI_CHANNELS; ++i) {
+        g_gmPreset[i] = i + 1; // Placeholder GM preset values (displayed 001..016).
+        for (int k = 0; k < 4; ++k) {
+            g_noteX[i][k] = 12 + (rand() % 360);
+            g_noteOn[i][k] = ((rand() % 3) == 0);
+        }
+    }
+
+    const TCHAR CLASS_NAME[] = _T("MIDI_PIXEL_FIRST_WINDOW");
     WNDCLASS wc = {};
     wc.lpfnWndProc = WindowProc; wc.hInstance = instance;
     wc.lpszClassName = CLASS_NAME; wc.hCursor = LoadCursor(NULL, IDC_ARROW);
@@ -146,7 +165,8 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         x, y, w, h, NULL, NULL, instance, NULL);
     if (!hwnd) return 2;
-    ShowWindow(hwnd, show); UpdateWindow(hwnd);\n    SetTimer(hwnd, 1, 140, NULL);
+    ShowWindow(hwnd, show); UpdateWindow(hwnd);
+    SetTimer(hwnd, 1, 140, NULL);
     MSG msg; while (GetMessage(&msg, NULL, 0, 0) > 0) {
         TranslateMessage(&msg); DispatchMessage(&msg);
     }
