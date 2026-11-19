@@ -25,3 +25,10 @@ The project maintainer directs the work, chooses what to retain, performs or arr
 The maintainer plans to preserve selected conversation snapshots as standalone HTML files outside this repository, and include them in the eventual distribution archive. This avoids duplicating the complete conversation history here.
 
 This log therefore records milestones and decisions only. The HTML archive, when prepared, will provide the fuller historical record.
+
+
+## 2026-11-19 — Alpha GUI prototype vA0.002
+
+The first visual prototype is revised as `VISTA12HEURES_test vA0.002`. The note area now uses clean horizontal blue channel guides without small per-note separators, and active demonstration notes are rendered as simple square pixels. This remains a visual-only alpha build: it does not load MIDI files or generate sound.
+
+The project adopts an initial version convention: alpha GUI experiments use `vA0.001`, `vA0.002`, etc. The first playable MIDI-file build with audible General MIDI output will begin the beta series, initially `v0.1.00`, `v0.1.01`, etc.
