@@ -255,6 +255,16 @@ static void DrawLine(HDC dc, int x1, int y, int x2, COLORREF color) {
     HPEN p = CreatePen(PS_SOLID, 2, color); HPEN old = (HPEN)SelectObject(dc, p);
     MoveToEx(dc, x1, y, NULL); LineTo(dc, x2, y); SelectObject(dc, old); DeleteObject(p);
 }
+static void SaveWindow(HWND hwnd) {
+    if (IsIconic(hwnd) || IsZoomed(hwnd)) return;
+    RECT r;
+    if (!GetWindowRect(hwnd, &r)) return;
+    TCHAR n[32];
+    _stprintf_s(n, _T("%d"), r.left); WritePrivateProfileString(_T("Window"), _T("X"), n, g_iniPath);
+    _stprintf_s(n, _T("%d"), r.top); WritePrivateProfileString(_T("Window"), _T("Y"), n, g_iniPath);
+    _stprintf_s(n, _T("%d"), r.right - r.left); WritePrivateProfileString(_T("Window"), _T("Width"), n, g_iniPath);
+    _stprintf_s(n, _T("%d"), r.bottom - r.top); WritePrivateProfileString(_T("Window"), _T("Height"), n, g_iniPath);
+}
 static void Paint(HWND hwnd) {
     PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
     RECT cr; GetClientRect(hwnd, &cr);
