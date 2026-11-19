@@ -77,3 +77,8 @@ Consolidated the note palette, velocity response, interface colors, window geome
 ## 2026-11-19 — Octave guide markers vA0.012
 
 Added short markers directly over each channel guide line at every visible C note. The C3 marker (MIDI note 60) has its own configurable color (LinesC3color); all other octave-C markers use LinesCcolor. Marker width matches the four-pixel note marker and marker thickness follows LineThickness. The executable and source filenames return to the versioned VISTA12HEURES_test convention: VISTA12HEURES_test_vA0.012.exe and VISTA12HEURES_test_vA0.011.cpp.
+
+
+## 2026-11-19 — INI marker-color fix vA0.013
+
+Corrected the RGB reader so it receives the INI section explicitly. Interface colors continue to load from [Interface], while LinesC3color and LinesCcolor are now read from [Display]. Bumped the executable and displayed application version to vA0.013; source file is SOURCE/VISTA12HEURES_test_vA0.012.cpp.
