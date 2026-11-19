@@ -107,3 +107,8 @@ The project moves from experimental ALPHA prototypes to its first functional BET
 ## 2026-11-19 — BETA v0.02 ergonomic controls
 
 Added direct MIDI-file opening from the command line and drag-and-drop onto the application window. ESC now closes the application cleanly. Keyboard shortcuts are configurable in the [Keyboard] section of SETTINGS.INI, with defaults for relative seek, play/pause and MIDI output volume. The left/right seek interval is configurable in seconds. The progress fill is inset from its former dimensions for a cleaner appearance. The executable is VISTA12HEURES_v0.02.EXE; source is SOURCE/VISTA12HEURES_v0.02.cpp.
+
+
+## 2026-11-20 — BETA v0.03 MIDI information panel
+
+Added a borderless companion information window docked to the right of the main player. It follows the main window when moved or resized, can be shown or hidden with INFO, and closes via its small in-panel X. The panel lists MIDI text, copyright, instrument, lyric, marker and cue metadata, followed by track names in file order. Added UTF-8 text conversion with an ANSI fallback for legacy MIDI text. Refined the progress fill to span the full width of its background band while preserving a two-pixel inset at the top and bottom. Executable: VISTA12HEURES_v0.03.EXE; source: SOURCE/VISTA12HEURES_v0.03.cpp.
