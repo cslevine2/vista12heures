@@ -416,13 +416,14 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
         Txt(dc, timelineX, infoY + 39, info, label, 10);
     }
     int barY = height - 75;
-    FillRectColor(dc, RECT{ 0, barY, width, barY + 30 }, g_uiTransportTop);
-    FillRectColor(dc, RECT{ 0, barY + 30, width, height }, g_uiTransportBottom);
+    FillRectColor(dc, RECT{ 0, barY, width, barY + g_progressHeight }, g_uiTransportTop);
+    FillRectColor(dc, RECT{ 0, barY + g_progressHeight, width, height }, g_uiTransportBottom);
     FillRectColor(dc, RECT{ 0, barY, width, barY + 2 }, g_uiTransportEdge);
-    Txt(dc, 24, barY + 39, _T("STOP"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
-    Txt(dc, 92, barY + 39, _T("PLAY"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
-    Txt(dc, width / 2 - 24, barY + 39, _T("LOAD"), RGB(235, 235, 242), 13, FW_SEMIBOLD);
-    Txt(dc, width / 2 + 45, barY + 39, _T("Options"), label, 13);
+    int controlsY = barY + g_progressHeight + 9;
+    Txt(dc, 24, controlsY, _T("STOP"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
+    Txt(dc, 92, controlsY, _T("PLAY"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
+    Txt(dc, width / 2 - 24, controlsY, _T("LOAD"), RGB(235, 235, 242), 13, FW_SEMIBOLD);
+    Txt(dc, width / 2 + 45, controlsY, _T("Options"), label, 13);
 }
 static void DestroyBackBuffer() {
     if (g_backDC) {
@@ -472,9 +473,8 @@ static void Paint(HWND hwnd) {
         }
     }
     int barY = cr.bottom - 75;
-    int progressY = barY + (30 - g_progressHeight) / 2;
-    FillRectColor(dc, RECT{ 4, progressY, 4 + (g_totalUsec ? (int)((g_elapsedUsec * (cr.right - 8)) / g_totalUsec) : 0), progressY + g_progressHeight }, g_uiProgress);
-    Txt(dc, cr.right - 115, barY + 5, g_playing ? _T("PLAYING") : (g_finished ? _T("FINISHED") : _T("STOPPED")), RGB(235, 235, 242), 11, FW_SEMIBOLD);
+    FillRectColor(dc, RECT{ 4, barY, 4 + (g_totalUsec ? (int)((g_elapsedUsec * (cr.right - 8)) / g_totalUsec) : 0), barY + g_progressHeight }, g_uiProgress);
+    Txt(dc, cr.right - 115, barY + (g_progressHeight > 15 ? 5 : 1), g_playing ? _T("PLAYING") : (g_finished ? _T("FINISHED") : _T("STOPPED")), RGB(235, 235, 242), 11, FW_SEMIBOLD);
     EndPaint(hwnd, &ps);
 }
 static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
@@ -485,7 +485,7 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     case WM_LBUTTONDOWN: {
         RECT client; GetClientRect(hwnd, &client);
         int x = LOWORD(lp), y = HIWORD(lp), barY = client.bottom - 75;
-        if (y >= barY + 30) {
+        if (y >= barY + g_progressHeight) {
             if (x < 75) StopPlayback();
             else if (x < 150) StartPlayback();
             else if (x >= 260 && x < 390) LoadDialog(hwnd);
