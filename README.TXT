@@ -3,7 +3,7 @@ MIDI PIXEL / Vista12heures
 MIDI PIXEL is an experimental, lightweight MIDI player project. Its visual concept represents MIDI notes as pixels across sixteen channel rows or, later, file-track rows.
 
 CURRENT TEST BUILD
-VISTA12HEURES_test vA0.004 is an ALPHA visual-interface prototype. It shows sixteen generic MIDI channels, placeholder GM-preset values, and independently animated synthetic note markers. The animation is random demonstration data: it does NOT load MIDI files or produce MIDI sound.
+VISTA12HEURES_test vA0.006 is an ALPHA visual-interface prototype. It loads Standard MIDI Files (SMF) Type 0 and Type 1, reads note-on, note-off, program-change and tempo events, and visualizes active notes on sixteen MIDI channel rows. The build is visual-only: it does not produce MIDI sound.
 
 VERSIONING
 Alpha GUI experiments use the form vA0.001, vA0.002, and so on.
