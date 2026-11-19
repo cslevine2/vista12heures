@@ -12,7 +12,7 @@ The public GitHub repository **Vista12heures** is created by the project maintai
 
 https://github.com/cslevine2/vista12heures
 
-This first repository commit establishes the initial documentation and project structure.
+The initial set of repository commits establishes the project documentation and directory structure.
 
 ## AI assistance and provenance
 
