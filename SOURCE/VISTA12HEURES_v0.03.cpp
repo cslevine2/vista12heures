@@ -664,6 +664,7 @@ static void OpenMidiPath(HWND hwnd,const TCHAR* path,bool showError) {
         if(base2&&(!base||base2>base))base=base2;
         if(base)lstrcpyn(g_fileName,base+1,MAX_PATH);
         DestroyBackBuffer(); InvalidateRect(hwnd,NULL,FALSE); InvalidateDynamic(hwnd);
+        if(g_infoWnd)InvalidateRect(g_infoWnd,NULL,FALSE);
     } else if(showError) {
         MessageBox(hwnd,_T("Fichier MIDI non reconnu ou format non pris en charge."),_T("MIDI PIXEL"),MB_ICONWARNING|MB_OK);
     }
@@ -832,10 +833,14 @@ static void Paint(HWND hwnd) {
 static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     switch(msg) {
     case WM_ERASEBKGND: return 1;
-    case WM_MOUSEWHEEL:
+    case WM_MOUSEWHEEL: {
+        int visible=(GetSystemMetrics(SM_CYSCREEN)>0)?GetSystemMetrics(SM_CYSCREEN):600;
+        int maxScroll=(int)(g_midiText.size()*19+g_tracks.size()*18+100)-visible;
+        if(maxScroll<0)maxScroll=0;
         g_infoScroll-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*3;
-        if(g_infoScroll<0)g_infoScroll=0;
+        if(g_infoScroll<0)g_infoScroll=0;if(g_infoScroll>maxScroll)g_infoScroll=maxScroll;
         InvalidateRect(hwnd,NULL,FALSE); return 0;
+    }
     case WM_LBUTTONDOWN: {
         RECT r; GetClientRect(hwnd,&r);
         if(LOWORD(lp)>=r.right-38 && HIWORD(lp)<30){ShowWindow(hwnd,SW_HIDE);return 0;}
