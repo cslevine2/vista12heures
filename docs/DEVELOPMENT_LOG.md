@@ -37,3 +37,8 @@ The project adopts an initial version convention: alpha GUI experiments use `vA0
 ## 2026-11-19 — Alpha GUI prototype vA0.004
 
 The compact track-oriented display from vA0.003 is retained. The only visual adjustment in this iteration is the vertical placement of the demonstration note markers: they now sit above their horizontal guide lines instead of crossing them. The vA0.003 build also confirmed that the window geometry is restored from and saved to `SETTINGS.INI`.
+
+
+## 2026-11-19 — Alpha GUI prototype vA0.005
+
+The display now uses sixteen generic MIDI channels (01–16) instead of instrument names. Each channel exposes a placeholder GM-preset value, ready to become a program variable. Synthetic note markers animate independently on each row using a pseudo-random demonstration routine. The displayed `DEMO.MID` filename is still placeholder text; no MIDI file is loaded or played.
