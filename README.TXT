@@ -14,3 +14,6 @@ See docs/PROJECT_OVERVIEW.md for the intended design and docs/DEVELOPMENT_LOG.md
 
 
 vA0.007 — The static interface is cached in an off-screen bitmap. MIDI note updates invalidate only the affected marker rectangles; the progress/status area is refreshed separately. The build artifact now includes SOURCE/MIDI_PIXEL.cpp alongside the executable and SETTINGS.INI.
+
+
+vA0.008 — Channel rows are displayed in conventional order (MIDI channel 16 at top, channel 1 at bottom). The horizontal note range is focused on MIDI notes 12 through 115; notes outside that range are parsed and timed but not drawn. Marker brightness now follows note-on velocity.
