@@ -8,9 +8,11 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
-static const TCHAR VERSION[] = _T("vA0.008");
+static const TCHAR VERSION[] = _T("vA0.009");
 static TCHAR g_iniPath[MAX_PATH] = {};
+static TCHAR g_colorIniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
 static const int MIDI_CHANNELS = 16, MIDI_NOTES = 128;
@@ -27,6 +29,12 @@ static std::vector<MidiEvent> g_events;
 static std::vector<TrackInfo> g_tracks;
 static unsigned char g_active[MIDI_CHANNELS][MIDI_NOTES] = {};
 static int g_velocity[MIDI_CHANNELS][MIDI_NOTES] = {};
+static COLORREF g_noteColors[12] = {
+ RGB(232,222,90), RGB(207,207,134), RGB(70,70,70), RGB(173,53,53),
+ RGB(212,92,53), RGB(210,222,222), RGB(101,133,195), RGB(30,65,133),
+ RGB(47,111,207), RGB(90,175,114), RGB(8,212,79), RGB(58,84,51)
+};
+static double g_velocityMinimum = 0.10, g_velocityCurve = 1.00;
 static int g_program[MIDI_CHANNELS] = {};
 static unsigned long long g_totalUsec = 0, g_elapsedUsec = 0;
 static unsigned long long g_lastMs = 0;
@@ -40,6 +48,41 @@ static HDC g_backDC = NULL;
 static HBITMAP g_backBitmap = NULL;
 static HBITMAP g_oldBackBitmap = NULL;
 static int g_backWidth = 0, g_backHeight = 0;
+
+
+static void LoadColorPalette() {
+ const TCHAR* keys[12] = {_T("C"),_T("C_SHARP"),_T("D"),_T("D_SHARP"),_T("E"),_T("F"),_T("F_SHARP"),_T("G"),_T("G_SHARP"),_T("A"),_T("A_SHARP"),_T("B")};
+ for (int i=0;i<12;++i) {
+  TCHAR value[64]={}; GetPrivateProfileString(_T("Notes"),keys[i],_T(""),value,64,g_colorIniPath);
+  int rgb[3]={GetRValue(g_noteColors[i]),GetGValue(g_noteColors[i]),GetBValue(g_noteColors[i])};
+  int a=rgb[0],b=rgb[1],c=rgb[2];
+  if (value[0] && _stscanf_s(value,_T("%d , %d , %d"),&a,&b,&c)==3) {
+   if(a>=0&&a<=255)rgb[0]=a; if(b>=0&&b<=255)rgb[1]=b; if(c>=0&&c<=255)rgb[2]=c;
+  }
+  g_noteColors[i]=RGB(rgb[0],rgb[1],rgb[2]);
+ }
+ int minimum=GetPrivateProfileInt(_T("Velocity"),_T("MinimumPercent"),10,g_colorIniPath);
+ if(minimum<0)minimum=0; if(minimum>100)minimum=100;
+ g_velocityMinimum=minimum/100.0;
+ TCHAR curve[32]={}; GetPrivateProfileString(_T("Velocity"),_T("Curve"),_T("1.00"),curve,32,g_colorIniPath);
+ double v=_tcstod(curve,NULL); if(v<0.10||v>4.00)v=1.00; g_velocityCurve=v;
+}
+static double SrgbToLinear(int x) {
+ double c=x/255.0; return c<=0.04045?c/12.92:pow((c+0.055)/1.055,2.4);
+}
+static int LinearToSrgb(double x) {
+ if(x<0)x=0; if(x>1)x=1;
+ double c=x<=0.0031308?12.92*x:1.055*pow(x,1.0/2.4)-0.055;
+ int n=(int)(c*255.0+0.5); if(n<0)n=0; if(n>255)n=255; return n;
+}
+static COLORREF ColorForNote(int note,int velocity) {
+ COLORREF base=g_noteColors[note%12];
+ double v=velocity/127.0;
+ double factor=g_velocityMinimum+(1.0-g_velocityMinimum)*pow(v,g_velocityCurve);
+ return RGB(LinearToSrgb(SrgbToLinear(GetRValue(base))*factor),
+            LinearToSrgb(SrgbToLinear(GetGValue(base))*factor),
+            LinearToSrgb(SrgbToLinear(GetBValue(base))*factor));
+}
 
 static unsigned short ReadBE16(const unsigned char* p) {
     return (unsigned short)((p[0] << 8) | p[1]);
@@ -385,8 +428,7 @@ static void Paint(HWND hwnd) {
             RECT nr = NoteRect(ch, note, cr.right);
             if (nr.right < ps.rcPaint.left || nr.left > ps.rcPaint.right ||
                 nr.bottom < ps.rcPaint.top || nr.top > ps.rcPaint.bottom) continue;
-            int intensity = 45 + (g_velocity[ch][note] * 210) / 127;
-            FillRectColor(dc, nr, RGB(intensity, intensity, 255));
+            FillRectColor(dc, nr, ColorForNote(note, g_velocity[ch][note]));
         }
     }
     int barY = cr.bottom - 75;
@@ -424,6 +466,12 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     lstrcpyn(g_iniPath, exe, MAX_PATH);
     TCHAR* slash = _tcsrchr(g_iniPath, _T('\\')); if (slash) *(slash + 1) = 0;
     _tcscat_s(g_iniPath, MAX_PATH, _T("SETTINGS.INI"));
+
+    lstrcpyn(g_colorIniPath, g_iniPath, MAX_PATH);
+    TCHAR* colorSlash = _tcsrchr(g_colorIniPath, (TCHAR)92);
+    if (colorSlash) *(colorSlash + 1) = 0;
+    _tcscat_s(g_colorIniPath, MAX_PATH, _T("CONFIG\\COLORS.INI"));
+    LoadColorPalette();
     int x = GetPrivateProfileInt(_T("Window"), _T("X"), 100, g_iniPath);
     int y = GetPrivateProfileInt(_T("Window"), _T("Y"), 100, g_iniPath);
     int w = GetPrivateProfileInt(_T("Window"), _T("Width"), WIN_W, g_iniPath);
