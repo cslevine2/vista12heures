@@ -837,7 +837,7 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         RECT client; GetClientRect(hwnd,&client);
         int maxScroll=(int)(g_midiText.size()*19+g_tracks.size()*18+100)-(client.bottom-45);
         if(maxScroll<0)maxScroll=0;
-        g_infoScroll-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*3;
+        g_infoScroll-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*57;
         if(g_infoScroll<0)g_infoScroll=0;if(g_infoScroll>maxScroll)g_infoScroll=maxScroll;
         InvalidateRect(hwnd,NULL,FALSE); return 0;
     }
