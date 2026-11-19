@@ -34,7 +34,7 @@ jobs:
         with:
           name: VISTA12HEURES_v0.01
           path: |
-            VISTA12HEURES_test_vA0.016.exe
+            VISTA12HEURES_v0.01.EXE
             SETTINGS.INI
             GM-XG.XML
             SOURCE/VISTA12HEURES_v0.01.cpp
