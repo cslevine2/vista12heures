@@ -174,7 +174,7 @@ static void LoadProgramNames() {
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
     if (size <= 0 || size > 1024 * 1024) { fclose(f); return; }
-    std::string xml((size_t)size, '\\0');
+    std::string xml((size_t)size, '\0');
     size_t read = fread(&xml[0], 1, xml.size(), f);
     fclose(f);
     if (read != xml.size()) return;
