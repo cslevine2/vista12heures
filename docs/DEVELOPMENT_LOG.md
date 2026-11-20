@@ -162,3 +162,8 @@ Adjusted the post-v0.1 version sequence to v0.102, v0.103, etc. The main display
 ## 2026-11-20 — BETA v0.103 centered retro metadata block
 
 Removed the visible labels "Marker", "Text Event" and "Copyright". The three fixed metadata slots now display only their corresponding text and remain blank when no matching event is present. The piece title and all three metadata slots are horizontally centered within the note timeline area. Added a Courier New fixed-pitch text renderer for this block to create a classic 8-bit composition-screen aesthetic. Existing bottom anchoring and current-marker timing behavior are retained. Footer version constant is v0.103. Executable: VISTA12HEURES_v0.103.EXE; source: SOURCE/VISTA12HEURES_v0.103.cpp.
+
+
+## 2026-11-20 — BETA v0.104 MIDI channel and track display modes
+
+Added the persistent `instrumentsMidiMode` setting (`canal` or `track`) and a two-line mode switch beneath SETTINGS. MIDI MODE retains the sixteen channel rows; General MIDI channel 10 is labelled RYTHME and uses an independently configurable `PercussionColor`. TRACK MODE displays one row per Standard MIDI File track, right-aligning each track name in the label column immediately before its guide line. Note activity is tracked by source track so the visualization reflects the file's track organization. The window grows vertically when a larger track count requires more room. Existing MIDI playback, seeking, and metadata display are retained. Executable: `VISTA12HEURES_v0.104.EXE`; source: `SOURCE/VISTA12HEURES_v0.104.cpp`.
