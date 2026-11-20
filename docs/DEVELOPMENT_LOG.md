@@ -137,3 +137,8 @@ The filename and elapsed/total time labels in the progress strip now use a font 
 ## 2026-11-20 — BETA v0.06 window presentation and footer
 
 Added independent font-size and RGB color settings for the application name, author credit and version labels in the [Footer] section of SETTINGS.INI. Removed the main window title bar and added a small in-client X close control. Added F-key fullscreen toggle, restoring the previous windowed position and size when leaving fullscreen. Improved command-line file argument handling by reassembling unquoted paths from file-manager arguments before attempting to open an existing file. The existing MIDI playback and display behavior is retained. Executable: VISTA12HEURES_v0.06.EXE; source: SOURCE/VISTA12HEURES_v0.06.cpp.
+
+
+## 2026-11-20 — BETA v0.07 borderless-window refinements
+
+Made the lower transport/footer area a drag surface for moving the borderless main window while preserving button actions. Reworked fullscreen to resize the existing window to the current monitor bounds rather than changing its window style, and restore the saved windowed rectangle on exit. Added configurable main piece-title font size through [Display] TrackTitleFontSize. Corrected elapsed/total time right alignment by measuring with the exact font used to draw the progress text. Executable: VISTA12HEURES_v0.07.EXE; source: SOURCE/VISTA12HEURES_v0.07.cpp.
