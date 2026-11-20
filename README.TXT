@@ -1,12 +1,15 @@
 MIDI PIXEL
 
 CURRENT BETA BUILD
-VISTA12HEURES v0.2 adds selected MIDI text metadata directly beneath the piece title in the main display: Marker (meta-event 0x06), Text Event (0x01) and Copyright (0x02). The events are shown in their original file order; other text meta-events remain available in the INFO window.
+VISTA12HEURES v0.102 displays a fixed three-line metadata block beneath the piece title:
+- Marker: the most recent Marker meta-event (0x06) at or before the current playback position
+- Text Event: the first Text Event meta-event (0x01) in the MIDI file
+- Copyright: the first Copyright meta-event (0x02) in the MIDI file
 
-The piece title and its selected metadata lines are now positioned as a single block anchored to the bottom edge of the visual area, immediately above the progress strip. Increasing the window height therefore creates additional space above this block instead of pushing the title and metadata downward from a fixed top coordinate. The existing track-count and ticks-per-quarter information remains in its lower-left position.
+Marker events are time-positioned using the MIDI tempo map, so the displayed marker changes as playback crosses marker positions and follows seeking. The title and the three metadata lines remain bottom-anchored above the progress strip.
 
-The section-independent SETTINGS.INI lookup introduced in v0.1 is retained: each setting is found by key name anywhere in the file, regardless of its [section]. Keep setting keys unique. The renamed window geometry, velocity, progress and octave-guide settings remain in use.
+Version numbering continues after v0.1 using v0.102, v0.103, and so on.
 
-All v0.1 functionality is retained, including the borderless resizable window, drag movement, F-key fullscreen toggle, configurable footer typography, MIDI output, automatic playback, drag-and-drop and command-line file opening.
+The section-independent SETTINGS.INI lookup introduced in v0.1 is retained: each setting is found by key name anywhere in the file, regardless of its [section]. Keep setting keys unique. All v0.1 and v0.2 functionality remains available, including the borderless resizable window, drag movement, F-key fullscreen toggle, configurable footer typography, MIDI output, automatic playback, drag-and-drop, command-line opening and INFO panel.
 
-The portable configuration file is SETTINGS.INI. The application version displayed in the footer is v0.2.
+The portable configuration file is SETTINGS.INI. The application version displayed in the footer is v0.102.
