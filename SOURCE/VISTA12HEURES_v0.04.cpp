@@ -516,13 +516,13 @@ static int ProgressWidth(int clientWidth) {
 static void InvalidateDynamic(HWND hwnd) {
     RECT r;
     GetClientRect(hwnd, &r);
-    RECT notes = { 220, 32, r.right - 20, 42 + MIDI_CHANNELS * 18 };
+    RECT notes = { 220, 32, r.right - 20, 34 + MIDI_CHANNELS * 18 };
     InvalidateRect(hwnd, &notes, FALSE);
-    RECT presets = { 68, 32, 222, 42 + MIDI_CHANNELS * 18 };
+    RECT presets = { 68, 32, 222, 34 + MIDI_CHANNELS * 18 };
     InvalidateRect(hwnd, &presets, FALSE);
     RECT metadata = { 20, 330, 560, 410 };
     InvalidateRect(hwnd, &metadata, FALSE);
-    RECT progress = { 0, r.bottom - 75, r.right, r.bottom - 40 };
+    RECT progress = { 0, r.bottom - 77, r.right, r.bottom - 40 };
     InvalidateRect(hwnd, &progress, FALSE);
 }
 static void AdvancePlayback(HWND hwnd) {
@@ -550,7 +550,7 @@ static void AdvancePlayback(HWND hwnd) {
             SendMidiShort((unsigned char)(0xC0 | e.channel), (unsigned char)e.a, 0);
             if (g_program[e.channel] != e.a) {
                 g_program[e.channel] = e.a;
-                RECT pr = { 68, 42 + (MIDI_CHANNELS - 1 - e.channel) * 18 - 6, 222, 42 + (MIDI_CHANNELS - 1 - e.channel) * 18 + 12 };
+                RECT pr = { 68, 34 + (MIDI_CHANNELS - 1 - e.channel) * 18 - 6, 222, 34 + (MIDI_CHANNELS - 1 - e.channel) * 18 + 12 };
                 InvalidateRect(hwnd, &pr, FALSE);
             }
         } else {
@@ -743,6 +743,9 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
     int infoY = headerY + 12;
     TCHAR info[128];
     if (g_loaded) {
+        TCHAR displayTitle[MAX_PATH]; lstrcpyn(displayTitle,g_fileName,MAX_PATH);
+        TCHAR* extension=_tcsrchr(displayTitle,_T('.')); if(extension)*extension=0;
+        Txt(dc,timelineX,infoY+2,displayTitle,RGB(235,235,242),17);
         _stprintf_s(info, _T("%u tracks   /   %u ticks per quarter"), (unsigned int)g_tracks.size(), (unsigned int)g_division);
         Txt(dc, 24, infoY + 28, info, label, 10);
     }
@@ -979,7 +982,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     WNDCLASS iwc={}; iwc.lpfnWndProc=InfoWindowProc; iwc.hInstance=instance; iwc.lpszClassName=_T("MIDI_PIXEL_INFO_WINDOW");
     iwc.hCursor=LoadCursor(NULL,IDC_ARROW); iwc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
     if(!RegisterClass(&iwc))return 1;
-    TCHAR title[128]; _stprintf_s(title, _T("MIDI_PIXEL %s"), VERSION);
+    TCHAR title[128]; _stprintf_s(title, _T("MIDI PIXEL %s"), VERSION);
     HWND hwnd = CreateWindowEx(0, CLASS_NAME, title, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
         x, y, w, h, NULL, NULL, instance, NULL);
     if (!hwnd) return 2;
