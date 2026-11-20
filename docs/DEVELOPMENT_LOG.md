@@ -147,3 +147,8 @@ Made the lower transport/footer area a drag surface for moving the borderless ma
 ## 2026-11-20 — BETA v0.1 SETTINGS.INI reorganization
 
 Reorganized the portable SETTINGS.INI using the maintainer's new section layout. Replaced section-specific profile lookups with a key-based reader that searches the entire file, so a setting is recognized regardless of the section in which it appears. Updated the renamed keys: X/Y/Width/Height to windowX/windowY/windowWidth/windowHeight; MinimumPercent to VelocityMinimumPercent; Curve to VelocityCurve; Progress to ProgressBar; TransportTop to ProgressBackground; TransportEdge to ProgressTopEdge; LinesC3color to LinesMiddleC3color; and LinesCcolor to LinesCOctavesCcolor. The application version constant and footer display are explicitly set to v0.1, correcting the prior v0.07 source's stale v0.06 display label. Window geometry persistence now writes the new window* names under [Interface]. Executable: VISTA12HEURES_v0.1.EXE; source: SOURCE/VISTA12HEURES_v0.1.cpp.
+
+
+## 2026-11-20 — BETA v0.2 piece metadata and bottom anchoring
+
+Added main-display rendering for MIDI text meta-events 0x06 (Marker), 0x01 (Text Event) and 0x02 (Copyright), beneath the piece title and in their original file order. Other metadata remains available in the INFO window. Repositioned the piece title and selected metadata as one block calculated upward from the progress-strip boundary, so the block remains bottom-anchored as the window is resized taller and additional vertical room becomes available above it. Track-count and ticks-per-quarter information remains in the lower-left area. Executable: VISTA12HEURES_v0.2.EXE; source: SOURCE/VISTA12HEURES_v0.2.cpp.
