@@ -1004,6 +1004,13 @@ static bool EnsureBackBuffer(HWND hwnd) {
     DrawStaticBackground(g_backDC, width, height);
     return true;
 }
+static void DrawWindowButtonFrame(HDC dc,RECT r,COLORREF color) {
+    HPEN pen=CreatePen(PS_SOLID,1,color);
+    HPEN oldPen=(HPEN)SelectObject(dc,pen);
+    HBRUSH oldBrush=(HBRUSH)SelectObject(dc,GetStockObject(NULL_BRUSH));
+    Rectangle(dc,r.left,r.top,r.right,r.bottom);
+    SelectObject(dc,oldBrush);SelectObject(dc,oldPen);DeleteObject(pen);
+}
 static void Paint(HWND hwnd) {
     PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
     RECT cr; GetClientRect(hwnd, &cr);
@@ -1051,9 +1058,9 @@ static void Paint(HWND hwnd) {
     Txt(dc,20,progressTextY,g_fileName,RGB(235,235,242),progressFontSize);
     const int buttonY=4,buttonW=21,buttonH=19,buttonGap=3;
     const int closeX=cr.right-27,maxX=closeX-buttonW-buttonGap,minX=maxX-buttonW-buttonGap;
-    RECT button={minX,buttonY,minX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawRect(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("_"),RGB(225,225,232),12,FW_BOLD);
-    button={maxX,buttonY,maxX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawRect(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("□"),RGB(225,225,232),11,FW_NORMAL);
-    button={closeX,buttonY,closeX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawRect(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("X"),RGB(225,225,232),11,FW_BOLD);
+    RECT button={minX,buttonY,minX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("_"),RGB(225,225,232),12,FW_BOLD);
+    button={maxX,buttonY,maxX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("□"),RGB(225,225,232),11,FW_NORMAL);
+    button={closeX,buttonY,closeX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("X"),RGB(225,225,232),11,FW_BOLD);
     EndPaint(hwnd, &ps);
 }
 static void FillRectColor(HDC dc,RECT r,COLORREF color);
