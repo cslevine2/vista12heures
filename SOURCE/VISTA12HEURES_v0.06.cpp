@@ -1049,14 +1049,31 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     int argc=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     if(argv) {
-        if(argc>1) {
-            TCHAR initialPath[MAX_PATH]={};
+        bool opened=false;
+        // Some file managers pass an unquoted %1 path. Reassemble consecutive
+        // command-line tokens until they form an existing file path.
+        for(int first=1;first<argc && !opened;++first) {
+            WCHAR candidate[32768]={};
+            for(int last=first;last<argc;++last) {
+                size_t used=wcslen(candidate);
+                if(used && used+1<sizeof(candidate)/sizeof(candidate[0])) {
+                    candidate[used]=L' '; candidate[used+1]=0;
+                }
+                used=wcslen(candidate);
+                size_t remaining=sizeof(candidate)/sizeof(candidate[0])-used-1;
+                wcsncat_s(candidate,sizeof(candidate)/sizeof(candidate[0]),argv[last],remaining);
+                if(GetFileAttributesW(candidate)!=INVALID_FILE_ATTRIBUTES) {
+                    TCHAR initialPath[MAX_PATH]={};
 #ifdef UNICODE
-            lstrcpyn(initialPath,argv[1],MAX_PATH);
+                    lstrcpyn(initialPath,candidate,MAX_PATH);
 #else
-            WideCharToMultiByte(CP_ACP,0,argv[1],-1,initialPath,MAX_PATH,NULL,NULL);
+                    WideCharToMultiByte(CP_ACP,0,candidate,-1,initialPath,MAX_PATH,NULL,NULL);
 #endif
-            OpenMidiPath(hwnd,initialPath,true);
+                    OpenMidiPath(hwnd,initialPath,true);
+                    opened=true;
+                    break;
+                }
+            }
         }
         LocalFree(argv);
     }
