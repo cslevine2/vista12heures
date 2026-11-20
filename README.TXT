@@ -1,17 +1,12 @@
 MIDI PIXEL
 
-MIDI PIXEL is a lightweight MIDI player whose visual concept represents MIDI notes as pixels across sixteen MIDI channel rows.
-
 CURRENT BETA BUILD
-VISTA12HEURES v0.1 reorganizes SETTINGS.INI and introduces section-independent key lookup. Every setting is found by its key name anywhere in the file, regardless of which [section] contains it. This allows users to reorganize the INI without changing application behavior, provided key names remain unique.
+VISTA12HEURES v0.2 adds selected MIDI text metadata directly beneath the piece title in the main display: Marker (meta-event 0x06), Text Event (0x01) and Copyright (0x02). The events are shown in their original file order; other text meta-events remain available in the INFO window.
 
-The configuration now uses explicit names for window geometry (windowX, windowY, windowWidth, windowHeight), velocity response (VelocityMinimumPercent, VelocityCurve), progress colors (ProgressBar, ProgressBackground, ProgressTopEdge), and octave guide colors (LinesMiddleC3color, LinesCOctavesCcolor). The application version is explicitly v0.1 in the footer and executable name.
+The piece title and its selected metadata lines are now positioned as a single block anchored to the bottom edge of the visual area, immediately above the progress strip. Increasing the window height therefore creates additional space above this block instead of pushing the title and metadata downward from a fixed top coordinate. The existing track-count and ticks-per-quarter information remains in its lower-left position.
 
-Existing features from v0.07 are retained: borderless resizable window, drag movement from the lower area, F-key fullscreen toggle with restoration, configurable footer typography, once-per-second elapsed time, automatic playback after load, MIDI text information panel, command-line and drag-and-drop file opening, and MIDI output.
+The section-independent SETTINGS.INI lookup introduced in v0.1 is retained: each setting is found by key name anywhere in the file, regardless of its [section]. Keep setting keys unique. The renamed window geometry, velocity, progress and octave-guide settings remain in use.
 
-CONFIGURATION
-SETTINGS.INI remains portable and user-facing. Its section names are organizational only: the application searches the whole file for each setting key. Keep each key unique to avoid ambiguity. Window geometry is saved back under [Interface] using windowX, windowY, windowWidth and windowHeight.
+All v0.1 functionality is retained, including the borderless resizable window, drag movement, F-key fullscreen toggle, configurable footer typography, MIDI output, automatic playback, drag-and-drop and command-line file opening.
 
-The local MIDI hardware selection remains a separate machine-specific configuration concern for a future step.
-
-See docs/PROJECT_OVERVIEW.md for the intended design and docs/DEVELOPMENT_LOG.md for dated milestones.
+The portable configuration file is SETTINGS.INI. The application version displayed in the footer is v0.2.
