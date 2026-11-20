@@ -513,6 +513,12 @@ static int ProgressWidth(int clientWidth) {
     if(width>(unsigned long long)clientWidth)width=clientWidth;
     return (int)width;
 }
+static void InvalidateInfoBlock(HWND hwnd) {
+    RECT client; GetClientRect(hwnd,&client);
+    RECT info={20,300,560,client.bottom-77};
+    if(info.bottom<info.top)info.bottom=info.top;
+    InvalidateRect(hwnd,&info,FALSE);
+}
 static void InvalidateDynamic(HWND hwnd) {
     RECT r;
     GetClientRect(hwnd, &r);
@@ -520,8 +526,7 @@ static void InvalidateDynamic(HWND hwnd) {
     InvalidateRect(hwnd, &notes, FALSE);
     RECT presets = { 68, 32, 222, 34 + MIDI_CHANNELS * 18 };
     InvalidateRect(hwnd, &presets, FALSE);
-    RECT metadata = { 20, 300, 560, r.bottom - 77 };
-    InvalidateRect(hwnd, &metadata, FALSE);
+    InvalidateInfoBlock(hwnd);
     RECT progress = { 0, r.bottom - 77, r.right, r.bottom - 40 };
     InvalidateRect(hwnd, &progress, FALSE);
 }
@@ -539,13 +544,11 @@ static void AdvancePlayback(HWND hwnd) {
         const MidiEvent& e = g_events[g_eventIndex++];
         if (e.type == 3) {
             g_currentTempo = (unsigned int)e.a;
-            RECT meta = { 20, 300, 560, 500 };
-            InvalidateRect(hwnd, &meta, FALSE);
+            InvalidateInfoBlock(hwnd);
         } else if (e.type == 4) {
             g_currentTimeNumerator = (unsigned char)e.a;
             g_currentTimeDenominatorPower = (unsigned char)e.b;
-            RECT meta = { 20, 300, 560, 500 };
-            InvalidateRect(hwnd, &meta, FALSE);
+            InvalidateInfoBlock(hwnd);
         } else if (e.type == 2) {
             SendMidiShort((unsigned char)(0xC0 | e.channel), (unsigned char)e.a, 0);
             if (g_program[e.channel] != e.a) {
