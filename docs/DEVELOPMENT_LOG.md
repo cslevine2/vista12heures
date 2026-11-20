@@ -142,3 +142,8 @@ Added independent font-size and RGB color settings for the application name, aut
 ## 2026-11-20 — BETA v0.07 borderless-window refinements
 
 Made the lower transport/footer area a drag surface for moving the borderless main window while preserving button actions. Reworked fullscreen to resize the existing window to the current monitor bounds rather than changing its window style, and restore the saved windowed rectangle on exit. Added configurable main piece-title font size through [Display] TrackTitleFontSize. Corrected elapsed/total time right alignment by measuring with the exact font used to draw the progress text. Executable: VISTA12HEURES_v0.07.EXE; source: SOURCE/VISTA12HEURES_v0.07.cpp.
+
+
+## 2026-11-20 — BETA v0.1 SETTINGS.INI reorganization
+
+Reorganized the portable SETTINGS.INI using the maintainer's new section layout. Replaced section-specific profile lookups with a key-based reader that searches the entire file, so a setting is recognized regardless of the section in which it appears. Updated the renamed keys: X/Y/Width/Height to windowX/windowY/windowWidth/windowHeight; MinimumPercent to VelocityMinimumPercent; Curve to VelocityCurve; Progress to ProgressBar; TransportTop to ProgressBackground; TransportEdge to ProgressTopEdge; LinesC3color to LinesMiddleC3color; and LinesCcolor to LinesCOctavesCcolor. The application version constant and footer display are explicitly set to v0.1, correcting the prior v0.07 source's stale v0.06 display label. Window geometry persistence now writes the new window* names under [Interface]. Executable: VISTA12HEURES_v0.1.EXE; source: SOURCE/VISTA12HEURES_v0.1.cpp.
