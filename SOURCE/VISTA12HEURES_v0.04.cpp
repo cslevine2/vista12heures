@@ -500,7 +500,7 @@ static int NotePixelX(int note, int clientWidth) {
     return timelineX + ((note - g_firstVisibleNote) * (timelineR - timelineX - 4)) / (g_lastVisibleNote - g_firstVisibleNote);
 }
 static RECT NoteRect(int channel, int note, int clientWidth) {
-    const int timelineX = 225, timelineR = clientWidth - 28, rowTop = 42, rowH = 18;
+    const int timelineX = 225, timelineR = clientWidth - 28, rowTop = 34, rowH = 18;
     if (note < g_firstVisibleNote || note > g_lastVisibleNote) return RECT{ -100, -100, -96, -94 };
     int x = NotePixelX(note, clientWidth);
     int y = rowTop + (MIDI_CHANNELS - 1 - channel) * rowH - 7;
@@ -747,7 +747,7 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
         TCHAR* extension=_tcsrchr(displayTitle,_T('.')); if(extension)*extension=0;
         Txt(dc,timelineX,infoY+2,displayTitle,RGB(235,235,242),17);
         _stprintf_s(info, _T("%u tracks   /   %u ticks per quarter"), (unsigned int)g_tracks.size(), (unsigned int)g_division);
-        Txt(dc, 24, infoY + 28, info, label, 10);
+        Txt(dc, 24, infoY + 24, info, label, 10);
     }
     int barY = height - 77;
     FillRectColor(dc, RECT{ 0, barY, width, barY + g_progressHeight }, g_uiTransportTop);
@@ -803,10 +803,10 @@ static void Paint(HWND hwnd) {
         TCHAR metaText[128];
         double bpm = g_currentTempo ? 60000000.0 / (double)g_currentTempo : 120.0;
         _stprintf_s(metaText, _T("TEMPO  %.1f BPM"), bpm);
-        Txt(dc, 24, infoY + 28, metaText, RGB(205, 210, 225), 10);
+        Txt(dc, 24, infoY + 40, metaText, RGB(205, 210, 225), 10);
         unsigned int denominator = 1u << g_currentTimeDenominatorPower;
         _stprintf_s(metaText, _T("TIME SIGNATURE  %u/%u"), (unsigned int)g_currentTimeNumerator, denominator);
-        Txt(dc, 24, infoY + 42, metaText, RGB(205, 210, 225), 10);
+        Txt(dc, 24, infoY + 54, metaText, RGB(205, 210, 225), 10);
     }
     for (int ch = 0; ch < MIDI_CHANNELS; ++ch) {
         TCHAR presetText[8];
