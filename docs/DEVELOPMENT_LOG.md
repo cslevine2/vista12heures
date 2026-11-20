@@ -157,3 +157,8 @@ Added main-display rendering for MIDI text meta-events 0x06 (Marker), 0x01 (Text
 ## 2026-11-20 — BETA v0.102 current-marker display
 
 Adjusted the post-v0.1 version sequence to v0.102, v0.103, etc. The main display now reserves exactly three metadata lines beneath the piece title: the most recent Marker (meta-event 0x06) at or before the current playback position, the first Text Event (0x01), and the first Copyright (0x02) event. Metadata events now retain their MIDI tick and are converted to microseconds using the file's tempo map. The current marker display updates when playback crosses a marker and naturally follows seeking. The title plus three lines remain bottom-anchored. The footer version constant is v0.102. Executable: VISTA12HEURES_v0.102.EXE; source: SOURCE/VISTA12HEURES_v0.102.cpp.
+
+
+## 2026-11-20 — BETA v0.103 centered retro metadata block
+
+Removed the visible labels "Marker", "Text Event" and "Copyright". The three fixed metadata slots now display only their corresponding text and remain blank when no matching event is present. The piece title and all three metadata slots are horizontally centered within the note timeline area. Added a Courier New fixed-pitch text renderer for this block to create a classic 8-bit composition-screen aesthetic. Existing bottom anchoring and current-marker timing behavior are retained. Footer version constant is v0.103. Executable: VISTA12HEURES_v0.103.EXE; source: SOURCE/VISTA12HEURES_v0.103.cpp.
