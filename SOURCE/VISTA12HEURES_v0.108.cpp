@@ -361,9 +361,9 @@ static void LoadMidiOutputSettings() {
     GetPrivateProfileString(_T("MidiOut"),_T("DeviceName"),_T("Microsoft GS Wavetable Synth"),savedName,256,g_midiOutIniPath);
     UINT count=midiOutGetNumDevs();
     g_selectedMidiDevice=(UINT)-1;
-    UINT savedIndex=GetPrivateProfileInt(_T("MidiOut"),_T("DeviceIndex"),0,g_midiOutIniPath);
+    int savedIndex=GetPrivateProfileInt(_T("MidiOut"),_T("DeviceIndex"),-1,g_midiOutIniPath);
     for(UINT i=0;i<count;++i){MIDIOUTCAPS caps={};if(midiOutGetDevCaps(i,&caps,sizeof(caps))==MMSYSERR_NOERROR&&_tcsicmp(caps.szPname,savedName)==0){g_selectedMidiDevice=i;break;}}
-    if(g_selectedMidiDevice==(UINT)-1&&savedIndex<count)g_selectedMidiDevice=savedIndex;
+    if(g_selectedMidiDevice==(UINT)-1&&savedIndex>=0&&(UINT)savedIndex<count)g_selectedMidiDevice=(UINT)savedIndex;
     if(g_selectedMidiDevice==(UINT)-1)for(UINT i=0;i<count;++i){MIDIOUTCAPS caps={};if(midiOutGetDevCaps(i,&caps,sizeof(caps))==MMSYSERR_NOERROR&&_tcsicmp(caps.szPname,_T("Microsoft GS Wavetable Synth"))==0){g_selectedMidiDevice=i;break;}}
     if(g_selectedMidiDevice==(UINT)-1&&count>0)g_selectedMidiDevice=0;
     if(g_selectedMidiDevice==(UINT)-1)g_useMidiMapper=true;
