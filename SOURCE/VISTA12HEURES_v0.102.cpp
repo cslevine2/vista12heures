@@ -598,15 +598,24 @@ static void InvalidateDynamic(HWND hwnd) {
     RECT progress = { 0, r.bottom - 77, r.right, r.bottom - 40 };
     InvalidateRect(hwnd, &progress, FALSE);
 }
+static int CurrentMarkerIndexAtUsec(unsigned long long usec) {
+    int current=-1;
+    for(size_t i=0;i<g_midiText.size();++i) {
+        if(g_midiText[i].label=="Marker" && g_midiText[i].usec<=usec)current=(int)i;
+    }
+    return current;
+}
 static void AdvancePlayback(HWND hwnd) {
     if (!g_playing) return;
     RECT client; GetClientRect(hwnd, &client);
     int oldProgressWidth = ProgressWidth(client.right);
     bool wasFinished = g_finished;
+    int oldMarkerIndex=CurrentMarkerIndexAtUsec(g_elapsedUsec);
     unsigned long long now = GetTickCount64();
     if (g_lastMs) g_elapsedUsec += (now - g_lastMs) * 1000;
     g_lastMs = now;
     if (g_elapsedUsec > g_totalUsec) g_elapsedUsec = g_totalUsec;
+    if(CurrentMarkerIndexAtUsec(g_elapsedUsec)!=oldMarkerIndex)InvalidateInfoBlock(hwnd);
     bool dynamicChanged = false;
     unsigned long long displayedSecond = g_elapsedUsec / 1000000ULL;
     if (displayedSecond != g_lastDisplayedSecond) {
