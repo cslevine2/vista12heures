@@ -167,3 +167,8 @@ Removed the visible labels "Marker", "Text Event" and "Copyright". The three fix
 ## 2026-11-20 — BETA v0.104 MIDI channel and track display modes
 
 Added the persistent `instrumentsMidiMode` setting (`canal` or `track`) and a two-line mode switch beneath SETTINGS. MIDI MODE retains the sixteen channel rows; General MIDI channel 10 is labelled RYTHME and uses an independently configurable `PercussionColor`. TRACK MODE displays one row per Standard MIDI File track, right-aligning each track name in the label column immediately before its guide line. Note activity is tracked by source track so the visualization reflects the file's track organization. The window grows vertically when a larger track count requires more room. Existing MIDI playback, seeking, and metadata display are retained. Executable: `VISTA12HEURES_v0.104.EXE`; source: `SOURCE/VISTA12HEURES_v0.104.cpp`.
+
+
+## 2026-11-20 — BETA v0.105 TRACK startup and guide corrections
+
+Fixed a startup crash when `instrumentsMidiMode=track` is saved: the static background renderer now accesses track names only after a MIDI file has actually been loaded, and falls back to the empty channel layout beforehand. Restored C3 and octave-C guide markers in TRACK MODE as well as MIDI MODE. Disabled automatic window growth when switching display modes; the existing growth-on-file-load behavior remains available for large arrangements. Executable: `VISTA12HEURES_v0.105.EXE`; source: `SOURCE/VISTA12HEURES_v0.105.cpp`.
