@@ -122,3 +122,8 @@ Rearranged the existing interface elements without introducing the next planned 
 ## 2026-11-20 — BETA v0.04 layout correction
 
 Corrected the note-marker row origin to match the raised channel guides, restoring each active note marker to its intended position immediately above its MIDI channel line. Separated the track-count/ticks-per-quarter line from the live tempo and time-signature lines in the lower-left information block. This is a corrective rebuild of BETA v0.04; no new features or configuration options were added.
+
+
+## 2026-11-20 — BETA v0.04c micro-correction
+
+Moved active note markers one additional pixel downward so they sit precisely against their channel guide lines. Repositioned the three lower-left information lines (track count and ticks per quarter, live tempo, time signature) using the progress-strip top edge as their vertical reference, keeping the complete block above the strip even when the window height changes. Updated metadata repaint invalidation to follow the same bottom-anchored region. This is a small corrective build; no new feature was added. Executable: VISTA12HEURES_v0.04c.EXE; source: SOURCE/VISTA12HEURES_v0.04c.cpp.
