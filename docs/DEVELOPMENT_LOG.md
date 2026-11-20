@@ -187,3 +187,8 @@ Added Standard MIDI File Pitch Bend channel events (status 0xE0), preserving the
 ## 2026-11-20 — BETA v0.108 selectable MIDI output and Expression meter
 
 Replaced the TRACK MODE Volume (CC7) mini-bar with an Expression (CC11) mini-bar, retaining Pan (CC10). Added a MIDI output Settings window using the same interface background color. It enumerates installed Windows MIDI output devices, offers the Windows MIDI Mapper as an optional destination, and applies the selected output immediately. The output choice is persisted separately in portable MIDIOUT.INI, leaving SETTINGS.INI dedicated to visual and player settings. Microsoft GS Wavetable Synth is selected by default when available; if unavailable, the first detected output is used, with MIDI Mapper as a final fallback. Volume (CC7) remains forwarded to the synthesizer but is no longer shown in TRACK MODE. Executable: VISTA12HEURES_v0.108.EXE; source: SOURCE/VISTA12HEURES_v0.108.cpp.
+
+
+## 2026-11-20 — BETA v0.2 window controls and remembered display state
+
+Added three compact window controls in the upper-right corner: minimize, fullscreen toggle (same monitor-filling behavior as the F key), and close. Their background color is configurable through `WindowButtonsColor` in SETTINGS.INI. The current display state is stored as `WindowsState` (`0` windowed, `1` fullscreen); the saved windowed position and dimensions remain intact while fullscreen is active, and fullscreen is restored on the next launch when requested. Executable: `VISTA12HEURES_v0.2.EXE`; source: `SOURCE/VISTA12HEURES_v0.2.cpp`.

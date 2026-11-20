@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("v0.1");
+static const TCHAR VERSION[] = _T("v0.2");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -26,7 +26,7 @@ struct MidiEvent {
 struct TempoEvent { unsigned long long tick; unsigned int usecPerQuarter; };
 struct TimeSignatureEvent { unsigned long long tick; unsigned char numerator, denominatorPower, clocksPerClick, thirtySecondsPerQuarter; };
 struct TrackInfo { std::string name; unsigned long long endTick; };
-struct MidiTextInfo { std::string label, text; };
+struct MidiTextInfo { unsigned long long tick, usec; std::string label, text; };
 
 static std::vector<MidiEvent> g_events;
 static std::vector<TrackInfo> g_tracks;
@@ -34,6 +34,12 @@ static std::vector<MidiTextInfo> g_midiText;
 static HWND g_infoWnd = NULL;
 static int g_infoScroll = 0;
 static unsigned char g_active[MIDI_CHANNELS][MIDI_NOTES] = {};
+static std::vector<std::vector<unsigned char>> g_trackActive,g_trackPercussionActive;
+static std::vector<std::vector<int>> g_trackVelocity,g_trackPercussionVelocity;
+static std::vector<int> g_trackExpression,g_trackPan;
+static COLORREF g_verticalPanCenterLine=RGB(110,100,75);
+static bool g_trackMode=false;
+static COLORREF g_percussionColor=RGB(230,110,190);
 static int g_velocity[MIDI_CHANNELS][MIDI_NOTES] = {};
 static COLORREF g_noteColors[12] = {
  RGB(232,222,90), RGB(207,207,134), RGB(70,70,70), RGB(173,53,53),
@@ -68,7 +74,12 @@ static unsigned char g_initialTimeNumerator = 4, g_initialTimeDenominatorPower =
 static unsigned char g_currentTimeNumerator = 4, g_currentTimeDenominatorPower = 2;
 static bool g_loaded = false, g_playing = false, g_finished = false;
 static HMIDIOUT g_midiOut = NULL;
+static TCHAR g_midiOutIniPath[MAX_PATH]={};
+static UINT g_selectedMidiDevice=(UINT)-1;
+static bool g_useMidiMapper=false;
+static HWND g_settingsWnd=NULL,g_outputCombo=NULL,g_mapperCheck=NULL;
 static void DestroyBackBuffer();
+static void AdjustWindowForDisplay(HWND hwnd);
 static HDC g_backDC = NULL;
 static HBITMAP g_backBitmap = NULL;
 static HBITMAP g_oldBackBitmap = NULL;
@@ -80,6 +91,8 @@ static int g_footerAppSize=12,g_footerAuthorSize=9,g_footerVersionSize=10;
 static int g_trackTitleFontSize=17;
 static COLORREF g_footerAppColor=RGB(30,30,45),g_footerAuthorColor=RGB(30,30,45),g_footerVersionColor=RGB(30,30,45);
 static bool g_fullscreen=false;
+static bool g_startFullscreen=false;
+static COLORREF g_windowButtonsColor=RGB(49,46,72);
 static RECT g_windowedRect={};
 static LONG_PTR g_windowedStyle=0;
 
@@ -146,6 +159,14 @@ static UINT ParseVirtualKey(const TCHAR* value, UINT fallback) {
         if(n>0&&n<=255)return (UINT)n;
     }
     return fallback;
+}
+static void LoadInstrumentDisplaySettings() {
+ TCHAR mode[32]={};GetIniValueAnySection(_T("instrumentsMidiMode"),mode,32,_T("canal"));
+ g_trackMode=(_tcsicmp(mode,_T("track"))==0);
+ g_percussionColor=ReadIniRgbAnySection(_T("PercussionColor"),RGB(230,110,190));
+}
+static void SaveInstrumentDisplaySettings() {
+ WritePrivateProfileString(_T("Interface"),_T("instrumentsMidiMode"),g_trackMode?_T("track"):_T("canal"),g_iniPath);
 }
 static void LoadKeyboardSettings() {
     TCHAR value[32]={};
@@ -225,6 +246,8 @@ static void LoadInterfaceColors() {
     if (g_lastVisibleNote <= g_firstVisibleNote) { g_firstVisibleNote = 12; g_lastVisibleNote = 115; }
     g_linesC3Color = ReadIniRgbAnySection(_T("LinesMiddleC3color"),RGB(255,210,90));
     g_linesCColor = ReadIniRgbAnySection(_T("LinesCOctavesCcolor"),RGB(125,145,190));
+    g_verticalPanCenterLine = ReadIniRgbAnySection(_T("verticalPanCenterLine"),RGB(110,100,75));
+    g_windowButtonsColor = ReadIniRgbAnySection(_T("WindowButtonsColor"),g_uiBackground);
 }
 
 static unsigned short ReadBE16(const unsigned char* p) {
@@ -327,22 +350,43 @@ static void AllNotesOff() {
         SendMidiShort((unsigned char)(0xB0 | ch), 123, 0);
     }
 }
+static void BuildMidiOutIniPath() {
+    TCHAR exe[MAX_PATH]={};GetModuleFileName(NULL,exe,MAX_PATH);
+    lstrcpyn(g_midiOutIniPath,exe,MAX_PATH);
+    TCHAR* slash=_tcsrchr(g_midiOutIniPath,_T('\\'));
+    if(slash)*(slash+1)=0;
+    _tcscat_s(g_midiOutIniPath,MAX_PATH,_T("MIDIOUT.INI"));
+}
+static void LoadMidiOutputSettings() {
+    BuildMidiOutIniPath();
+    g_useMidiMapper=GetPrivateProfileInt(_T("MidiOut"),_T("UseMidiMapper"),0,g_midiOutIniPath)!=0;
+    TCHAR savedName[256]={};
+    GetPrivateProfileString(_T("MidiOut"),_T("DeviceName"),_T("Microsoft GS Wavetable Synth"),savedName,256,g_midiOutIniPath);
+    UINT count=midiOutGetNumDevs();
+    g_selectedMidiDevice=(UINT)-1;
+    int savedIndex=GetPrivateProfileInt(_T("MidiOut"),_T("DeviceIndex"),-1,g_midiOutIniPath);
+    for(UINT i=0;i<count;++i){MIDIOUTCAPS caps={};if(midiOutGetDevCaps(i,&caps,sizeof(caps))==MMSYSERR_NOERROR&&_tcsicmp(caps.szPname,savedName)==0){g_selectedMidiDevice=i;break;}}
+    if(g_selectedMidiDevice==(UINT)-1&&savedIndex>=0&&(UINT)savedIndex<count)g_selectedMidiDevice=(UINT)savedIndex;
+    if(g_selectedMidiDevice==(UINT)-1)for(UINT i=0;i<count;++i){MIDIOUTCAPS caps={};if(midiOutGetDevCaps(i,&caps,sizeof(caps))==MMSYSERR_NOERROR&&_tcsicmp(caps.szPname,_T("Microsoft GS Wavetable Synth"))==0){g_selectedMidiDevice=i;break;}}
+    if(g_selectedMidiDevice==(UINT)-1&&count>0)g_selectedMidiDevice=0;
+    if(g_selectedMidiDevice==(UINT)-1)g_useMidiMapper=true;
+}
+static void SaveMidiOutputSettings() {
+    WritePrivateProfileString(_T("MidiOut"),_T("UseMidiMapper"),g_useMidiMapper?_T("1"):_T("0"),g_midiOutIniPath);
+    TCHAR index[32]={};_stprintf_s(index,_T("%u"),g_selectedMidiDevice);
+    WritePrivateProfileString(_T("MidiOut"),_T("DeviceIndex"),index,g_midiOutIniPath);
+    if(!g_useMidiMapper){MIDIOUTCAPS caps={};if(midiOutGetDevCaps(g_selectedMidiDevice,&caps,sizeof(caps))==MMSYSERR_NOERROR)WritePrivateProfileString(_T("MidiOut"),_T("DeviceName"),caps.szPname,g_midiOutIniPath);}
+}
 static bool OpenMidiOutput(HWND owner) {
-    const TCHAR target[] = _T("Microsoft GS Wavetable Synth");
-    UINT count = midiOutGetNumDevs();
-    for (UINT i = 0; i < count; ++i) {
-        MIDIOUTCAPS caps = {};
-        if (midiOutGetDevCaps(i, &caps, sizeof(caps)) != MMSYSERR_NOERROR) continue;
-        if (_tcsnicmp(caps.szPname, target, _tcslen(target)) != 0) continue;
-        MMRESULT result = midiOutOpen(&g_midiOut, i, 0, 0, CALLBACK_NULL);
-        if (result == MMSYSERR_NOERROR) {
-            AllNotesOff();
-            return true;
-        }
-        g_midiOut = NULL;
-        break;
-    }
-    MessageBox(owner, _T("Microsoft GS Wavetable Synth was not found or could not be opened.\nMIDI PIXEL will remain available in visual-only mode."), _T("MIDI PIXEL - MIDI output"), MB_ICONWARNING | MB_OK);
+    if(g_midiOut){AllNotesOff();midiOutClose(g_midiOut);g_midiOut=NULL;}
+    UINT device=g_useMidiMapper?MIDI_MAPPER:g_selectedMidiDevice;
+    MMRESULT result=midiOutOpen(&g_midiOut,device,0,0,CALLBACK_NULL);
+    if(result==MMSYSERR_NOERROR){AllNotesOff();return true;}
+    g_midiOut=NULL;
+    TCHAR message[512]={};
+    if(g_useMidiMapper)lstrcpyn(message,_T("Windows MIDI Mapper could not be opened.\\nMIDI PIXEL will remain available in visual-only mode."),512);
+    else {MIDIOUTCAPS caps={};TCHAR name[256]=_T("Selected MIDI output");if(midiOutGetDevCaps(g_selectedMidiDevice,&caps,sizeof(caps))==MMSYSERR_NOERROR)lstrcpyn(name,caps.szPname,256);_stprintf_s(message,_T("The MIDI output \"%s\" could not be opened.\\nMIDI PIXEL will remain available in visual-only mode."),name);}
+    MessageBox(owner,message,_T("MIDI PIXEL - MIDI output"),MB_ICONWARNING|MB_OK);
     return false;
 }
 static void CloseMidiOutput() {
@@ -362,7 +406,11 @@ static void ResumeActiveNotes() {
 }
 static void ClearPlayback() {
     memset(g_active, 0, sizeof(g_active));
+    for(int ch=0;ch<MIDI_CHANNELS;++ch)SendMidiShort((unsigned char)(0xE0|ch),0,64);
+    std::fill(g_trackExpression.begin(),g_trackExpression.end(),127);
+    std::fill(g_trackPan.begin(),g_trackPan.end(),64);
     memset(g_velocity, 0, sizeof(g_velocity));
+    for(size_t t=0;t<g_trackActive.size();++t){std::fill(g_trackActive[t].begin(),g_trackActive[t].end(),0);std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);std::fill(g_trackVelocity[t].begin(),g_trackVelocity[t].end(),0);std::fill(g_trackPercussionVelocity[t].begin(),g_trackPercussionVelocity[t].end(),0);}
     memcpy(g_program, g_initialProgram, sizeof(g_program));
     g_elapsedUsec = 0;
     g_lastDisplayedSecond = ~0ULL;
@@ -436,7 +484,8 @@ static bool LoadMidiFile(const TCHAR* path) {
                     case 0x06: label="Marker"; break;
                     case 0x07: label="Cue"; break;
                     }
-                    if(label)midiText.push_back({label,MidiTextToAnsi(payload,len)});
+                    if(label && (metaType==0x01 || metaType==0x02 || metaType==0x06))
+                        midiText.push_back({tick,0,label,MidiTextToAnsi(payload,len)});
                 }
                 if (metaType == 0x51 && len == 3) {
                     unsigned int tempo = ((unsigned int)payload[0] << 16) | ((unsigned int)payload[1] << 8) | payload[2];
@@ -462,6 +511,8 @@ static bool LoadMidiFile(const TCHAR* path) {
                 if (command == 0x80) events.push_back({ tick, 0, (int)ti, channel, 0, a, b });
                 else if (command == 0x90) events.push_back({ tick, 0, (int)ti, channel, b ? 1 : 0, a, b });
                 else if (command == 0xc0) events.push_back({ tick, 0, (int)ti, channel, 2, a, 0 });
+                else if (command == 0xb0) events.push_back({ tick, 0, (int)ti, channel, 5, a, b });
+                else if (command == 0xe0) events.push_back({ tick, 0, (int)ti, channel, 6, a, b });
             }
         }
         track.endTick = tick;
@@ -513,8 +564,33 @@ static bool LoadMidiFile(const TCHAR* path) {
     unsigned long long tail = maxTick > lastTick ? maxTick - lastTick : 0;
     elapsed += (tail * (unsigned long long)tempo) / division;
 
+    // Convert text-event ticks to playback time using the same tempo map as MIDI events.
+    for(size_t mi=0;mi<midiText.size();++mi) {
+        unsigned int textTempo=500000;
+        unsigned long long textLastTick=0,textElapsed=0;
+        for(size_t ti=0;ti<tempos.size();++ti) {
+            if(tempos[ti].tick>midiText[mi].tick)break;
+            unsigned long long dt=tempos[ti].tick-textLastTick;
+            textElapsed+=(dt*(unsigned long long)textTempo)/division;
+            textLastTick=tempos[ti].tick;
+            textTempo=tempos[ti].usecPerQuarter;
+        }
+        unsigned long long dt=midiText[mi].tick-textLastTick;
+        textElapsed+=(dt*(unsigned long long)textTempo)/division;
+        midiText[mi].usec=textElapsed;
+    }
+    std::sort(midiText.begin(),midiText.end(),[](const MidiTextInfo& a,const MidiTextInfo& b){
+        if(a.usec!=b.usec)return a.usec<b.usec;
+        return a.tick<b.tick;
+    });
     g_events.swap(events);
     g_tracks.swap(tracks);
+    g_trackActive.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));
+    g_trackPercussionActive.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));
+    g_trackVelocity.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,0));
+    g_trackPercussionVelocity.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,0));
+    g_trackExpression.assign(g_tracks.size(),127);
+    g_trackPan.assign(g_tracks.size(),64);
     g_midiText.swap(midiText);
     g_infoScroll=0;
     memset(g_initialProgram, 0, sizeof(g_initialProgram));
@@ -547,13 +623,11 @@ static int NotePixelX(int note, int clientWidth) {
     const int timelineX = 225, timelineR = clientWidth - 28;
     return timelineX + ((note - g_firstVisibleNote) * (timelineR - timelineX - 4)) / (g_lastVisibleNote - g_firstVisibleNote);
 }
-static RECT NoteRect(int channel, int note, int clientWidth) {
-    const int timelineX = 225, timelineR = clientWidth - 28, rowTop = 34, rowH = 18;
-    if (note < g_firstVisibleNote || note > g_lastVisibleNote) return RECT{ -100, -100, -96, -94 };
-    int x = NotePixelX(note, clientWidth);
-    int y = rowTop + (MIDI_CHANNELS - 1 - channel) * rowH - 6;
-    RECT r = { x, y, x + 4, y + 6 };
-    return r;
+static int DisplayRowCount(){return(g_trackMode&&g_loaded&&!g_tracks.empty())?(int)g_tracks.size():MIDI_CHANNELS;}
+static int DisplayRowY(int row){int count=DisplayRowCount();return 34+((g_trackMode&&g_loaded)?row:(count-1-row))*18;}
+static RECT NoteRect(int row,int note,int clientWidth){
+ if(note<g_firstVisibleNote||note>g_lastVisibleNote)return RECT{-100,-100,-96,-94};
+ int x=NotePixelX(note,clientWidth),y=DisplayRowY(row)-6;RECT r={x,y,x+4,y+6};return r;
 }
 static int ProgressWidth(int clientWidth) {
     if (!g_totalUsec || clientWidth <= 0) return 0;
@@ -570,23 +644,31 @@ static void InvalidateInfoBlock(HWND hwnd) {
 static void InvalidateDynamic(HWND hwnd) {
     RECT r;
     GetClientRect(hwnd, &r);
-    RECT notes = { 220, 32, r.right - 20, 34 + MIDI_CHANNELS * 18 };
-    InvalidateRect(hwnd, &notes, FALSE);
-    RECT presets = { 68, 32, 222, 34 + MIDI_CHANNELS * 18 };
+    RECT notes={20,32,r.right-20,34+DisplayRowCount()*18};InvalidateRect(hwnd,&notes,FALSE);
+    RECT presets={24,32,222,34+DisplayRowCount()*18};
     InvalidateRect(hwnd, &presets, FALSE);
     InvalidateInfoBlock(hwnd);
     RECT progress = { 0, r.bottom - 77, r.right, r.bottom - 40 };
     InvalidateRect(hwnd, &progress, FALSE);
+}
+static int CurrentMarkerIndexAtUsec(unsigned long long usec) {
+    int current=-1;
+    for(size_t i=0;i<g_midiText.size();++i) {
+        if(g_midiText[i].label=="Marker" && g_midiText[i].usec<=usec)current=(int)i;
+    }
+    return current;
 }
 static void AdvancePlayback(HWND hwnd) {
     if (!g_playing) return;
     RECT client; GetClientRect(hwnd, &client);
     int oldProgressWidth = ProgressWidth(client.right);
     bool wasFinished = g_finished;
+    int oldMarkerIndex=CurrentMarkerIndexAtUsec(g_elapsedUsec);
     unsigned long long now = GetTickCount64();
     if (g_lastMs) g_elapsedUsec += (now - g_lastMs) * 1000;
     g_lastMs = now;
     if (g_elapsedUsec > g_totalUsec) g_elapsedUsec = g_totalUsec;
+    if(CurrentMarkerIndexAtUsec(g_elapsedUsec)!=oldMarkerIndex)InvalidateInfoBlock(hwnd);
     bool dynamicChanged = false;
     unsigned long long displayedSecond = g_elapsedUsec / 1000000ULL;
     if (displayedSecond != g_lastDisplayedSecond) {
@@ -610,18 +692,24 @@ static void AdvancePlayback(HWND hwnd) {
                 RECT pr = { 68, 34 + (MIDI_CHANNELS - 1 - e.channel) * 18 - 6, 222, 34 + (MIDI_CHANNELS - 1 - e.channel) * 18 + 12 };
                 InvalidateRect(hwnd, &pr, FALSE);
             }
+        } else if (e.type == 5) {
+            SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
+            if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11){g_trackExpression[e.track]=e.b;RECT cr={22,DisplayRowY(e.track)-7,82,DisplayRowY(e.track)+9};InvalidateRect(hwnd,&cr,FALSE);}
+            if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10){g_trackPan[e.track]=e.b;RECT cr={22,DisplayRowY(e.track)-7,82,DisplayRowY(e.track)+9};InvalidateRect(hwnd,&cr,FALSE);}
+        } else if (e.type == 6) {
+            SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
         } else {
-            RECT oldRect = NoteRect(e.channel, e.a, client.right);
+            RECT oldRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if (e.type == 1) {
                 SendMidiShort((unsigned char)(0x90 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
-                g_active[e.channel][e.a] = 1;
-                g_velocity[e.channel][e.a] = e.b;
+                g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}
             } else {
                 SendMidiShort((unsigned char)(0x80 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
-                g_active[e.channel][e.a] = 0;
-                g_velocity[e.channel][e.a] = 0;
+                g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}
             }
-            RECT newRect = NoteRect(e.channel, e.a, client.right);
+            RECT newRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             InvalidateRect(hwnd, &oldRect, FALSE);
             InvalidateRect(hwnd, &newRect, FALSE);
             dynamicChanged = true;
@@ -659,9 +747,11 @@ static void SeekPlaybackToUsec(HWND hwnd, unsigned long long target) {
     ClearPlayback();
     while (g_eventIndex < g_events.size() && g_events[g_eventIndex].usec <= target) {
         const MidiEvent& e = g_events[g_eventIndex++];
-        if (e.type == 1) { g_active[e.channel][e.a] = 1; g_velocity[e.channel][e.a] = e.b; }
-        else if (e.type == 0) { g_active[e.channel][e.a] = 0; g_velocity[e.channel][e.a] = 0; }
+        if(e.type==1){g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}}
+        else if(e.type==0){g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}}
         else if (e.type == 2) g_program[e.channel] = e.a;
+        else if (e.type == 5) { SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11)g_trackExpression[e.track]=e.b; if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10)g_trackPan[e.track]=e.b; }
+        else if (e.type == 6) SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
         else if (e.type == 3) g_currentTempo = (unsigned int)e.a;
         else if (e.type == 4) { g_currentTimeNumerator = (unsigned char)e.a; g_currentTimeDenominatorPower = (unsigned char)e.b; }
     }
@@ -720,7 +810,7 @@ static void OpenMidiPath(HWND hwnd,const TCHAR* path,bool showError) {
         TCHAR* base=base1;
         if(base2&&(!base||base2>base))base=base2;
         if(base)lstrcpyn(g_fileName,base+1,MAX_PATH);
-        DestroyBackBuffer(); InvalidateRect(hwnd,NULL,FALSE); InvalidateDynamic(hwnd);
+        if(!g_trackMode)AdjustWindowForDisplay(hwnd);DestroyBackBuffer();InvalidateRect(hwnd,NULL,FALSE);InvalidateDynamic(hwnd);
         if(g_infoWnd)InvalidateRect(g_infoWnd,NULL,FALSE);
         StartPlayback();
     } else if(showError) {
@@ -748,6 +838,17 @@ static void Txt(HDC dc, int x, int y, LPCTSTR s, COLORREF color, int size = 13, 
     HFONT old = (HFONT)SelectObject(dc, f); TextOut(dc, x, y, s, lstrlen(s)); SelectObject(dc, old); DeleteObject(f);
 }
 
+static void TxtCenteredMono(HDC dc,RECT r,LPCTSTR text,COLORREF color,int size,int weight=FW_NORMAL) {
+    SetBkMode(dc,TRANSPARENT);
+    SetTextColor(dc,color);
+    HFONT f=CreateFont(size,0,0,0,weight,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,
+        FIXED_PITCH|FF_MODERN,_T("Courier New"));
+    HFONT old=(HFONT)SelectObject(dc,f);
+    DrawText(dc,text,-1,&r,DT_SINGLELINE|DT_VCENTER|DT_CENTER|DT_END_ELLIPSIS|DT_NOPREFIX);
+    SelectObject(dc,old);
+    DeleteObject(f);
+}
 static void TxtClipped(HDC dc, RECT r, LPCTSTR s, COLORREF color, int size = 9, int weight = FW_NORMAL) {
     SetBkMode(dc, TRANSPARENT);
     SetTextColor(dc, color);
@@ -760,12 +861,14 @@ static void TxtClipped(HDC dc, RECT r, LPCTSTR s, COLORREF color, int size = 9, 
     DeleteObject(f);
 }
 
+static COLORREF ColorForPercussion(int velocity){double v=velocity/127.0,f=g_velocityMinimum+(1.0-g_velocityMinimum)*pow(v,g_velocityCurve);return RGB(LinearToSrgb(SrgbToLinear(GetRValue(g_percussionColor))*f),LinearToSrgb(SrgbToLinear(GetGValue(g_percussionColor))*f),LinearToSrgb(SrgbToLinear(GetBValue(g_percussionColor))*f));}
 static void DrawLine(HDC dc, int x1, int y, int x2, COLORREF color) {
     HPEN p = CreatePen(PS_SOLID, g_lineThickness, color); HPEN old = (HPEN)SelectObject(dc, p);
     MoveToEx(dc, x1, y, NULL); LineTo(dc, x2, y); SelectObject(dc, old); DeleteObject(p);
 }
 static void SaveWindow(HWND hwnd) {
-    if (IsIconic(hwnd) || IsZoomed(hwnd)) return;
+    WritePrivateProfileString(_T("Interface"),_T("WindowsState"),g_fullscreen?_T("1"):_T("0"),g_iniPath);
+    if (g_fullscreen || IsIconic(hwnd) || IsZoomed(hwnd)) return;
     RECT r;
     if (!GetWindowRect(hwnd, &r)) return;
     TCHAR n[32];
@@ -780,55 +883,57 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
     const COLORREF label = RGB(190, 190, 205), line = g_uiLines;
     const int channelX = 24, presetX = 72, timelineX = 225, timelineR = width - 28;
     const int rowTop = 34, rowH = 18;
-    for (int i = 0; i < MIDI_CHANNELS; ++i) {
-        int y = rowTop + (MIDI_CHANNELS - 1 - i) * rowH;
-        TCHAR channelText[8];
-        _stprintf_s(channelText, _T("%02d"), i + 1);
-        Txt(dc, channelX, y - 5, channelText, label, 10);
-        DrawLine(dc, timelineX, y + 2, timelineR, line);
-        // Octave C markers sit directly on each channel guide line.
-        for (int note = g_firstVisibleNote; note <= g_lastVisibleNote; ++note) {
-            if ((note % 12) != 0) continue;
-            const int markerX = NotePixelX(note, width);
-            const int half = g_lineThickness / 2;
-            RECT marker = { markerX, y + 2 - half, markerX + 4, y + 2 - half + g_lineThickness };
-            FillRectColor(dc, marker, note == 60 ? g_linesC3Color : g_linesCColor);
-        }
+    int rows=DisplayRowCount();
+    for(int row=0;row<rows;++row){int y=DisplayRowY(row);
+      if(!g_trackMode){TCHAR ch[8];_stprintf_s(ch,_T("%02d"),row+1);Txt(dc,channelX,y-5,ch,label,10);}
+      else if(g_loaded && row<(int)g_tracks.size()){std::string tn=g_tracks[row].name;if(tn.empty()){char fb[32];_snprintf_s(fb,sizeof(fb),_TRUNCATE,"Track %02d",row+1);tn=fb;}TCHAR name[256]={};
+#ifdef UNICODE
+       MultiByteToWideChar(CP_ACP,0,tn.c_str(),-1,name,256);
+#else
+       lstrcpynA(name,tn.c_str(),256);
+#endif
+       RECT nr={84,y-7,timelineX-7,y+9};SetBkMode(dc,TRANSPARENT);SetTextColor(dc,label);HFONT nf=CreateFont(10,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH|FF_DONTCARE,_T("Segoe UI"));HFONT no=(HFONT)SelectObject(dc,nf);DrawText(dc,name,-1,&nr,DT_SINGLELINE|DT_VCENTER|DT_RIGHT|DT_END_ELLIPSIS|DT_NOPREFIX);SelectObject(dc,no);DeleteObject(nf);}
+      if(g_trackMode&&g_loaded){RECT vr={24,y-2,48,y+2};FillRectColor(dc,vr,RGB(35,32,25));RECT pr={54,y-2,78,y+2};FillRectColor(dc,pr,RGB(35,32,25));}
+      DrawLine(dc,timelineX,y+2,timelineR,line);
+      for(int n=g_firstVisibleNote;n<=g_lastVisibleNote;++n)if(n%12==0){int mx=NotePixelX(n,width),half=g_lineThickness/2;RECT mr={mx,y+2-half,mx+4,y+2-half+g_lineThickness};FillRectColor(dc,mr,n==60?g_linesC3Color:g_linesCColor);}
     }
-    int headerY = rowTop + MIDI_CHANNELS * rowH + 4;
-    Txt(dc, channelX, headerY, _T("CH"), label, 9, FW_SEMIBOLD);
-    Txt(dc, presetX, headerY, _T("PROGRAM"), label, 9, FW_SEMIBOLD);
-    int infoY = headerY + 12;
+    if(g_trackMode&&g_loaded&&rows>0){int firstY=DisplayRowY(0),lastY=DisplayRowY(rows-1);HPEN panPen=CreatePen(PS_SOLID,1,g_verticalPanCenterLine);HPEN oldPan=(HPEN)SelectObject(dc,panPen);MoveToEx(dc,66,firstY-7,NULL);LineTo(dc,66,lastY+8);SelectObject(dc,oldPan);DeleteObject(panPen);}
+    int headerY=rowTop+rows*rowH+4;if(!g_trackMode){Txt(dc,channelX,headerY,_T("CH"),label,9,FW_SEMIBOLD);Txt(dc,presetX,headerY,_T("PROGRAM"),label,9,FW_SEMIBOLD);}int infoY=headerY+12;
     TCHAR info[128];
     int barY = height - 77;
     if (g_loaded) {
         TCHAR displayTitle[MAX_PATH]; lstrcpyn(displayTitle,g_fileName,MAX_PATH);
         TCHAR* extension=_tcsrchr(displayTitle,_T('.')); if(extension)*extension=0;
 
-        // Only the three requested text meta-events are shown under the piece title.
-        size_t visibleTextCount=0;
-        for(size_t i=0;i<g_midiText.size();++i) {
-            const std::string& labelText=g_midiText[i].label;
-            if(labelText=="Marker"||labelText=="Text"||labelText=="Copyright")++visibleTextCount;
-        }
+        // Fixed three-line metadata block: current Marker, first Text Event, first Copyright.
         const int titleLineHeight=g_trackTitleFontSize+5;
         const int eventLineHeight=16;
-        const int blockHeight=titleLineHeight+(int)visibleTextCount*eventLineHeight;
+        const int blockHeight=titleLineHeight+3*eventLineHeight;
         int blockY=barY-8-blockHeight;
-
-        Txt(dc,timelineX,blockY,displayTitle,RGB(235,235,242),g_trackTitleFontSize);
+        RECT textArea={timelineX,blockY,width-24,blockY+titleLineHeight};
+        TxtCenteredMono(dc,textArea,displayTitle,RGB(235,235,242),g_trackTitleFontSize);
         int eventY=blockY+titleLineHeight;
+        const MidiTextInfo* currentMarker=NULL;
+        const MidiTextInfo* firstText=NULL;
+        const MidiTextInfo* firstCopyright=NULL;
         for(size_t i=0;i<g_midiText.size();++i) {
-            const std::string& labelText=g_midiText[i].label;
-            if(labelText!="Marker"&&labelText!="Text"&&labelText!="Copyright")continue;
-            std::string line=labelText+": "+g_midiText[i].text;
+            const MidiTextInfo& item=g_midiText[i];
+            if(item.label=="Marker" && item.usec<=g_elapsedUsec) currentMarker=&item;
+            else if(item.label=="Text" && !firstText) firstText=&item;
+            else if(item.label=="Copyright" && !firstCopyright) firstCopyright=&item;
+        }
+        const MidiTextInfo* displayItems[3]={currentMarker,firstText,firstCopyright};
+        for(int lineIndex=0;lineIndex<3;++lineIndex) {
             TCHAR eventText[1024]={};
+            if(displayItems[lineIndex]) {
 #ifdef UNICODE
-            MultiByteToWideChar(CP_ACP,0,line.c_str(),-1,eventText,1024);
+                MultiByteToWideChar(CP_ACP,0,displayItems[lineIndex]->text.c_str(),-1,eventText,1024);
 #else
-            lstrcpynA(eventText,line.c_str(),1024);
+                lstrcpynA(eventText,displayItems[lineIndex]->text.c_str(),1024);
 #endif
-            TxtClipped(dc,RECT{timelineX,eventY,width-24,eventY+eventLineHeight},eventText,RGB(210,205,190),10);
+            }
+            RECT eventRect={timelineX,eventY,width-24,eventY+eventLineHeight};
+            TxtCenteredMono(dc,eventRect,eventText,RGB(210,205,190),10);
             eventY+=eventLineHeight;
         }
         _stprintf_s(info, _T("%u tracks   /   %u ticks per quarter"), (unsigned int)g_tracks.size(), (unsigned int)g_division);
@@ -838,7 +943,8 @@ static void DrawStaticBackground(HDC dc, int width, int height) {
     FillRectColor(dc, RECT{ 0, barY + g_progressHeight, width, height }, g_uiTransportBottom);
     FillRectColor(dc, RECT{ 0, barY, width, barY + 2 }, g_uiTransportEdge);
     int controlsY = barY + g_progressHeight + 9;
-    Txt(dc, 40, controlsY, _T("SETTINGS"), RGB(235, 235, 242), 12);
+    Txt(dc,40,controlsY,_T("SETTINGS"),RGB(235,235,242),12);
+    Txt(dc,40,controlsY+17,g_trackMode?_T("TRACK MODE"):_T("MIDI MODE"),RGB(190,190,205),9);
     Txt(dc, width / 2 - 24, controlsY, _T("LOAD"), RGB(235, 235, 242), 13, FW_SEMIBOLD);
     Txt(dc, width / 2 + 45, controlsY, _T("INFO"), label, 13, FW_SEMIBOLD);
     Txt(dc, width - 115, controlsY, _T("STOP"), RGB(235, 235, 242), 12, FW_SEMIBOLD);
@@ -867,6 +973,11 @@ static void ToggleFullscreen(HWND hwnd) {
     }
     DestroyBackBuffer();
     InvalidateRect(hwnd,NULL,FALSE);
+}
+static void AdjustWindowForDisplay(HWND hwnd){
+ if(!hwnd||g_fullscreen)return;RECT wr,cr;GetWindowRect(hwnd,&wr);GetClientRect(hwnd,&cr);int rows=DisplayRowCount();if(rows<16)rows=16;
+ int wantedClient=34+rows*18+160,wanted=(wr.bottom-wr.top)+(wantedClient-cr.bottom),maxH=GetSystemMetrics(SM_CYSCREEN)-60;if(wanted>maxH)wanted=maxH;int current=wr.bottom-wr.top;if(wanted<current)wanted=current;
+ if(wanted!=current)SetWindowPos(hwnd,NULL,wr.left,wr.top,wr.right-wr.left,wanted,SWP_NOZORDER|SWP_NOACTIVATE);
 }
 static void DestroyBackBuffer() {
     if (g_backDC) {
@@ -914,24 +1025,11 @@ static void Paint(HWND hwnd) {
         _stprintf_s(metaText, _T("TIME SIGNATURE  %u/%u"), (unsigned int)g_currentTimeNumerator, denominator);
         Txt(dc, 24, barY - 27, metaText, RGB(205, 210, 225), 10);
     }
-    for (int ch = 0; ch < MIDI_CHANNELS; ++ch) {
-        TCHAR presetText[8];
-        _stprintf_s(presetText, _T("%03d"), g_program[ch] + 1);
-        int programY = rowTop + (MIDI_CHANNELS - 1 - ch) * rowH;
-        Txt(dc, 72, programY - 5, g_loaded ? presetText : _T("---"), RGB(160, 170, 195), 10);
-        if (g_loaded && g_programNames[g_program[ch]][0]) {
-            RECT nameRect = { 106, programY - 7, timelineX - 7, programY + 9 };
-            TxtClipped(dc, nameRect, g_programNames[g_program[ch]], RGB(205, 210, 225), 9);
-        }
-        if (!g_loaded) continue;
-        for (int note = 0; note < MIDI_NOTES; ++note) {
-            if (!g_active[ch][note]) continue;
-            RECT nr = NoteRect(ch, note, cr.right);
-            if (nr.right < ps.rcPaint.left || nr.left > ps.rcPaint.right ||
-                nr.bottom < ps.rcPaint.top || nr.top > ps.rcPaint.bottom) continue;
-            FillRectColor(dc, nr, ColorForNote(note, g_velocity[ch][note]));
-        }
-    }
+    int rows=DisplayRowCount();
+    if(!g_trackMode){for(int ch=0;ch<MIDI_CHANNELS;++ch){int y=DisplayRowY(ch);TCHAR p[16]={};if(ch==9)lstrcpyn(p,_T("RYTHME"),16);else _stprintf_s(p,_T("%03d"),g_program[ch]+1);Txt(dc,72,y-5,g_loaded?p:_T("---"),RGB(160,170,195),10);
+      if(ch!=9&&g_loaded&&g_programNames[g_program[ch]][0]){RECT nr={106,y-7,timelineX-7,y+9};TxtClipped(dc,nr,g_programNames[g_program[ch]],RGB(205,210,225),9);}
+      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]){RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;FillRectColor(dc,nr,ch==9?ColorForPercussion(g_velocity[ch][n]):ColorForNote(n,g_velocity[ch][n]));}}}
+    else if(g_loaded){for(int tr=0;tr<rows;++tr){int y=DisplayRowY(tr);RECT vr={24,y-2,24+(24*g_trackExpression[tr])/127,y+2};if(vr.right>vr.left&&vr.right>ps.rcPaint.left&&vr.left<ps.rcPaint.right&&vr.bottom>ps.rcPaint.top&&vr.top<ps.rcPaint.bottom)FillRectColor(dc,vr,RGB(205,150,55));int px=54+(24*g_trackPan[tr])/127;RECT pan={px-1,y-5,px+2,y+6};if(pan.right>ps.rcPaint.left&&pan.left<ps.rcPaint.right&&pan.bottom>ps.rcPaint.top&&pan.top<ps.rcPaint.bottom)FillRectColor(dc,pan,RGB(175,190,205));for(int n=0;n<MIDI_NOTES;++n){RECT nr=NoteRect(tr,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;if(g_trackActive[tr][n])FillRectColor(dc,nr,ColorForNote(n,g_trackVelocity[tr][n]));if(g_trackPercussionActive[tr][n])FillRectColor(dc,nr,ColorForPercussion(g_trackPercussionVelocity[tr][n]));}}}
     int barY = cr.bottom - 77;
     RECT progressFill = { 0, barY + 2, ProgressWidth(cr.right), barY + g_progressHeight - 2 };
     RECT visibleFill;
@@ -951,8 +1049,49 @@ static void Paint(HWND hwnd) {
     int progressTextY = barY + (g_progressHeight - progressFontSize) / 2;
     Txt(dc,cr.right-timeSize.cx-14,progressTextY,timeText,RGB(235,235,242),progressFontSize);
     Txt(dc,20,progressTextY,g_fileName,RGB(235,235,242),progressFontSize);
+    const int buttonY=4,buttonW=21,buttonH=19,buttonGap=3;
+    const int closeX=cr.right-27,maxX=closeX-buttonW-buttonGap,minX=maxX-buttonW-buttonGap;
+    RECT button={minX,buttonY,minX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawRect(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("_"),RGB(225,225,232),12,FW_BOLD);
+    button={maxX,buttonY,maxX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawRect(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("□"),RGB(225,225,232),11,FW_NORMAL);
+    button={closeX,buttonY,closeX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawRect(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("X"),RGB(225,225,232),11,FW_BOLD);
     EndPaint(hwnd, &ps);
 }
+static void FillRectColor(HDC dc,RECT r,COLORREF color);
+static void RefreshOutputCombo() {
+    if(!g_outputCombo)return;
+    SendMessage(g_outputCombo,CB_RESETCONTENT,0,0);
+    UINT count=midiOutGetNumDevs();int selected=-1;
+    for(UINT i=0;i<count;++i){MIDIOUTCAPS caps={};if(midiOutGetDevCaps(i,&caps,sizeof(caps))!=MMSYSERR_NOERROR)continue;int row=(int)SendMessage(g_outputCombo,CB_ADDSTRING,0,(LPARAM)caps.szPname);SendMessage(g_outputCombo,CB_SETITEMDATA,row,(LPARAM)i);if(i==g_selectedMidiDevice)selected=row;}
+    if(selected>=0)SendMessage(g_outputCombo,CB_SETCURSEL,selected,0);else if(SendMessage(g_outputCombo,CB_GETCOUNT,0,0)>0)SendMessage(g_outputCombo,CB_SETCURSEL,0,0);
+    EnableWindow(g_outputCombo,!g_useMidiMapper);
+}
+static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
+    switch(msg){
+    case WM_CREATE:{
+        HFONT font=(HFONT)GetStockObject(DEFAULT_GUI_FONT);
+        HWND title=CreateWindowEx(0,_T("STATIC"),_T("MIDI OUTPUT"),WS_CHILD|WS_VISIBLE,18,16,250,20,hwnd,NULL,NULL,NULL);
+        g_mapperCheck=CreateWindowEx(0,_T("BUTTON"),_T("Use MIDI Mapper"),WS_CHILD|WS_VISIBLE|BS_AUTOCHECKBOX,20,44,170,24,hwnd,(HMENU)101,NULL,NULL);
+        g_outputCombo=CreateWindowEx(0,_T("COMBOBOX"),_T(""),WS_CHILD|WS_VISIBLE|WS_VSCROLL|CBS_DROPDOWNLIST,20,78,330,180,hwnd,(HMENU)102,NULL,NULL);
+        HWND apply=CreateWindowEx(0,_T("BUTTON"),_T("Apply"),WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,190,126,76,28,hwnd,(HMENU)103,NULL,NULL);
+        HWND close=CreateWindowEx(0,_T("BUTTON"),_T("Close"),WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,274,126,76,28,hwnd,(HMENU)104,NULL,NULL);
+        SendMessage(title,WM_SETFONT,(WPARAM)font,TRUE);SendMessage(g_mapperCheck,WM_SETFONT,(WPARAM)font,TRUE);SendMessage(g_outputCombo,WM_SETFONT,(WPARAM)font,TRUE);SendMessage(apply,WM_SETFONT,(WPARAM)font,TRUE);SendMessage(close,WM_SETFONT,(WPARAM)font,TRUE);
+        SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();return 0;
+    }
+    case WM_COMMAND:
+        if(LOWORD(wp)==101&&HIWORD(wp)==BN_CLICKED){g_useMidiMapper=SendMessage(g_mapperCheck,BM_GETCHECK,0,0)==BST_CHECKED;EnableWindow(g_outputCombo,!g_useMidiMapper);return 0;}
+        if(LOWORD(wp)==103){g_useMidiMapper=SendMessage(g_mapperCheck,BM_GETCHECK,0,0)==BST_CHECKED;if(!g_useMidiMapper){int row=(int)SendMessage(g_outputCombo,CB_GETCURSEL,0,0);if(row>=0)g_selectedMidiDevice=(UINT)SendMessage(g_outputCombo,CB_GETITEMDATA,row,0);}SaveMidiOutputSettings();OpenMidiOutput(hwnd);DestroyBackBuffer();if(GetParent(hwnd))InvalidateRect(GetParent(hwnd),NULL,FALSE);ShowWindow(hwnd,SW_HIDE);return 0;}
+        if(LOWORD(wp)==104){ShowWindow(hwnd,SW_HIDE);return 0;}break;
+    case WM_CTLCOLORSTATIC:case WM_CTLCOLORBTN:{HDC dc=(HDC)wp;SetBkColor(dc,g_uiBackground);SetTextColor(dc,RGB(235,235,242));static HBRUSH brush=NULL;if(!brush)brush=CreateSolidBrush(g_uiBackground);return (LRESULT)brush;}
+    case WM_ERASEBKGND:{RECT r;GetClientRect(hwnd,&r);FillRectColor((HDC)wp,r,g_uiBackground);return 1;}
+    case WM_CLOSE:ShowWindow(hwnd,SW_HIDE);return 0;
+    }
+    return DefWindowProc(hwnd,msg,wp,lp);
+}
+static void ShowMidiOutputSettings(HWND owner) {
+    if(!g_settingsWnd)g_settingsWnd=CreateWindowEx(WS_EX_TOOLWINDOW,_T("MIDI_PIXEL_SETTINGS_WINDOW"),_T("Midi Player Device Settings"),WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_BORDER,CW_USEDEFAULT,CW_USEDEFAULT,390,205,owner,NULL,(HINSTANCE)GetWindowLongPtr(owner,GWLP_HINSTANCE),NULL);
+    if(g_settingsWnd){RECT wr;GetWindowRect(owner,&wr);SetWindowPos(g_settingsWnd,HWND_TOP,wr.left+30,wr.top+30,390,205,SWP_SHOWWINDOW);SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();ShowWindow(g_settingsWnd,SW_SHOW);UpdateWindow(g_settingsWnd);}
+}
+
 static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     switch(msg) {
     case WM_ERASEBKGND: return 1;
@@ -1038,12 +1177,18 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             SeekPlayback(hwnd, x);
             return 0;
         }
-        if(y<27 && x>=client.right-32){SendMessage(hwnd,WM_CLOSE,0,0);return 0;}
+        if(y>=4&&y<24){
+            const int buttonW=21,buttonGap=3,closeX=client.right-27,maxX=closeX-buttonW-buttonGap,minX=maxX-buttonW-buttonGap;
+            if(x>=closeX&&x<closeX+buttonW){SendMessage(hwnd,WM_CLOSE,0,0);return 0;}
+            if(x>=maxX&&x<maxX+buttonW){ToggleFullscreen(hwnd);return 0;}
+            if(x>=minX&&x<minX+buttonW){ShowWindow(hwnd,SW_MINIMIZE);return 0;}
+        }
         if (y >= barY + g_progressHeight) {
             bool handled=false;
             if (x >= client.right-85 && x < client.right-30) { StartPlayback(); handled=true; }
             else if (x >= client.right-150 && x < client.right-90) { StopPlayback(); handled=true; }
-            else if (x >= 25 && x < 125) { /* SETTINGS placeholder */ handled=true; }
+            else if(x>=25&&x<125&&y>=barY+g_progressHeight+22&&y<barY+g_progressHeight+43){g_trackMode=!g_trackMode;SaveInstrumentDisplaySettings();DestroyBackBuffer();InvalidateRect(hwnd,NULL,FALSE);InvalidateDynamic(hwnd);handled=true;}
+            else if (x >= 25 && x < 125) { ShowMidiOutputSettings(hwnd); handled=true; }
             else if (x >= client.right/2-45 && x < client.right/2+35) { LoadDialog(hwnd); handled=true; }
             else if (x >= client.right/2+35 && x < client.right/2+125) {
                 if(g_infoWnd && IsWindowVisible(g_infoWnd))ShowWindow(g_infoWnd,SW_HIDE);
@@ -1077,7 +1222,7 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         if(wp==g_keyVolumeUp){AdjustMidiVolume(1);return 0;}
         if(wp==g_keyVolumeDown){AdjustMidiVolume(-1);return 0;}
         break;
-    case WM_CLOSE: KillTimer(hwnd, 1); SaveWindow(hwnd); CloseMidiOutput(); DestroyBackBuffer(); DestroyWindow(hwnd); return 0;
+    case WM_CLOSE: KillTimer(hwnd,1);SaveInstrumentDisplaySettings();SaveWindow(hwnd);if(g_settingsWnd)DestroyWindow(g_settingsWnd);CloseMidiOutput();DestroyBackBuffer();DestroyWindow(hwnd);return 0;
     case WM_DESTROY: PostQuitMessage(0); return 0;
     }
     return DefWindowProc(hwnd, msg, wp, lp);
@@ -1090,17 +1235,21 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
 
     LoadColorPalette();
     LoadInterfaceColors();
+    LoadInstrumentDisplaySettings();
     LoadKeyboardSettings();
     LoadProgramNames();
+    LoadMidiOutputSettings();
     int x = GetIniIntAnySection(_T("windowX"),100);
     int y = GetIniIntAnySection(_T("windowY"),100);
     int w = GetIniIntAnySection(_T("windowWidth"),WIN_W);
     int h = GetIniIntAnySection(_T("windowHeight"),WIN_H);
+    g_startFullscreen=GetIniIntAnySection(_T("WindowsState"),0)!=0;
     if (w < 500 || w > 2000) w = WIN_W; if (h < 350 || h > 1400) h = WIN_H;
     const TCHAR CLASS_NAME[] = _T("MIDI_PIXEL_FIRST_WINDOW");
     WNDCLASS wc = {}; wc.lpfnWndProc = WindowProc; wc.hInstance = instance; wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     if (!RegisterClass(&wc)) return 1;
+    WNDCLASS swc={};swc.lpfnWndProc=SettingsWindowProc;swc.hInstance=instance;swc.lpszClassName=_T("MIDI_PIXEL_SETTINGS_WINDOW");swc.hCursor=LoadCursor(NULL,IDC_ARROW);swc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);if(!RegisterClass(&swc))return 1;
     WNDCLASS iwc={}; iwc.lpfnWndProc=InfoWindowProc; iwc.hInstance=instance; iwc.lpszClassName=_T("MIDI_PIXEL_INFO_WINDOW");
     iwc.hCursor=LoadCursor(NULL,IDC_ARROW); iwc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
     if(!RegisterClass(&iwc))return 1;
@@ -1110,7 +1259,9 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     if (!hwnd) return 2;
     OpenMidiOutput(hwnd);
     DragAcceptFiles(hwnd,TRUE);
-    ShowWindow(hwnd, show); UpdateWindow(hwnd); SetTimer(hwnd, 1, 10, NULL);
+    ShowWindow(hwnd, show); UpdateWindow(hwnd);
+    if(g_startFullscreen)ToggleFullscreen(hwnd);
+    SetTimer(hwnd, 1, 10, NULL);
     int argc=0;
     LPWSTR* argv=CommandLineToArgvW(GetCommandLineW(),&argc);
     if(argv) {
