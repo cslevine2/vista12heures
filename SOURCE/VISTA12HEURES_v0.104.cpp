@@ -586,7 +586,7 @@ static int NotePixelX(int note, int clientWidth) {
     return timelineX + ((note - g_firstVisibleNote) * (timelineR - timelineX - 4)) / (g_lastVisibleNote - g_firstVisibleNote);
 }
 static int DisplayRowCount(){return(g_trackMode&&g_loaded&&!g_tracks.empty())?(int)g_tracks.size():MIDI_CHANNELS;}
-static int DisplayRowY(int row){return 34+(DisplayRowCount()-1-row)*18;}
+static int DisplayRowY(int row){int count=DisplayRowCount();return 34+((g_trackMode&&g_loaded)?row:(count-1-row))*18;}
 static RECT NoteRect(int row,int note,int clientWidth){
  if(note<g_firstVisibleNote||note>g_lastVisibleNote)return RECT{-100,-100,-96,-94};
  int x=NotePixelX(note,clientWidth),y=DisplayRowY(row)-6;RECT r={x,y,x+4,y+6};return r;
