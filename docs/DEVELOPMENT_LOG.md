@@ -127,3 +127,8 @@ Corrected the note-marker row origin to match the raised channel guides, restori
 ## 2026-11-20 — BETA v0.04c micro-correction
 
 Moved active note markers one additional pixel downward so they sit precisely against their channel guide lines. Repositioned the three lower-left information lines (track count and ticks per quarter, live tempo, time signature) using the progress-strip top edge as their vertical reference, keeping the complete block above the strip even when the window height changes. Updated metadata repaint invalidation to follow the same bottom-anchored region. This is a small corrective build; no new feature was added. Executable: VISTA12HEURES_v0.04c.EXE; source: SOURCE/VISTA12HEURES_v0.04c.cpp.
+
+
+## 2026-11-20 — BETA v0.05 progress-strip refinements
+
+The filename and elapsed/total time labels in the progress strip now use a font size derived from ProgressHeight (ProgressHeight minus two pixels, clamped for readability) and are vertically centered in the strip. The elapsed mm:ss value is refreshed once per second during playback. Loading a MIDI file now starts playback automatically for dialog, command-line and drag-and-drop opening paths. No MIDI parsing or event-timing behavior was changed. Executable: VISTA12HEURES_v0.05.EXE; source: SOURCE/VISTA12HEURES_v0.05.cpp.
