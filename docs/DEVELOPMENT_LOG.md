@@ -132,3 +132,8 @@ Moved active note markers one additional pixel downward so they sit precisely ag
 ## 2026-11-20 — BETA v0.05 progress-strip refinements
 
 The filename and elapsed/total time labels in the progress strip now use a font size derived from ProgressHeight (ProgressHeight minus two pixels, clamped for readability) and are vertically centered in the strip. The elapsed mm:ss value is refreshed once per second during playback. Loading a MIDI file now starts playback automatically for dialog, command-line and drag-and-drop opening paths. No MIDI parsing or event-timing behavior was changed. Executable: VISTA12HEURES_v0.05.EXE; source: SOURCE/VISTA12HEURES_v0.05.cpp.
+
+
+## 2026-11-20 — BETA v0.06 window presentation and footer
+
+Added independent font-size and RGB color settings for the application name, author credit and version labels in the [Footer] section of SETTINGS.INI. Removed the main window title bar and added a small in-client X close control. Added F-key fullscreen toggle, restoring the previous windowed position and size when leaving fullscreen. Improved command-line file argument handling by reassembling unquoted paths from file-manager arguments before attempting to open an existing file. The existing MIDI playback and display behavior is retained. Executable: VISTA12HEURES_v0.06.EXE; source: SOURCE/VISTA12HEURES_v0.06.cpp.
