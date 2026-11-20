@@ -112,3 +112,8 @@ Added direct MIDI-file opening from the command line and drag-and-drop onto the 
 ## 2026-11-20 — BETA v0.03 MIDI information panel
 
 Added a borderless companion information window docked to the right of the main player. It follows the main window when moved or resized, can be shown or hidden with INFO, and closes via its small in-panel X. The panel lists MIDI text, copyright, instrument, lyric, marker and cue metadata, followed by track names in file order. Added UTF-8 text conversion with an ANSI fallback for legacy MIDI text. Refined the progress fill to span the full width of its background band while preserving a two-pixel inset at the top and bottom. Executable: VISTA12HEURES_v0.03.EXE; source: SOURCE/VISTA12HEURES_v0.03.cpp.
+
+
+## 2026-11-20 — BETA v0.04 main-window layout
+
+Rearranged the existing interface elements without introducing the next planned feature set. The sixteen channel rows move upward into the dedicated visual area, with CH and PROGRAM labels below them. The piece title and track/resolution information sit beneath the note display, while live tempo and time signature move to the lower-left information block. The progress strip displays the MIDI filename at left and elapsed/total time at right in mm:ss. SETTINGS, LOAD, INFO, STOP and PLAY are repositioned to match the revised transport layout; the application name, version and authorship line are placed at the bottom. The settings button is currently a visual placeholder. Executable: VISTA12HEURES_v0.04.EXE; source: SOURCE/VISTA12HEURES_v0.04.cpp.
