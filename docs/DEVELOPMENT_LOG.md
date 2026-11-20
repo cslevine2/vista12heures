@@ -152,3 +152,8 @@ Reorganized the portable SETTINGS.INI using the maintainer's new section layout.
 ## 2026-11-20 — BETA v0.2 piece metadata and bottom anchoring
 
 Added main-display rendering for MIDI text meta-events 0x06 (Marker), 0x01 (Text Event) and 0x02 (Copyright), beneath the piece title and in their original file order. Other metadata remains available in the INFO window. Repositioned the piece title and selected metadata as one block calculated upward from the progress-strip boundary, so the block remains bottom-anchored as the window is resized taller and additional vertical room becomes available above it. Track-count and ticks-per-quarter information remains in the lower-left area. Executable: VISTA12HEURES_v0.2.EXE; source: SOURCE/VISTA12HEURES_v0.2.cpp.
+
+
+## 2026-11-20 — BETA v0.102 current-marker display
+
+Adjusted the post-v0.1 version sequence to v0.102, v0.103, etc. The main display now reserves exactly three metadata lines beneath the piece title: the most recent Marker (meta-event 0x06) at or before the current playback position, the first Text Event (0x01), and the first Copyright (0x02) event. Metadata events now retain their MIDI tick and are converted to microseconds using the file's tempo map. The current marker display updates when playback crosses a marker and naturally follows seeking. The title plus three lines remain bottom-anchored. The footer version constant is v0.102. Executable: VISTA12HEURES_v0.102.EXE; source: SOURCE/VISTA12HEURES_v0.102.cpp.
