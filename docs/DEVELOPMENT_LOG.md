@@ -172,3 +172,8 @@ Added the persistent `instrumentsMidiMode` setting (`canal` or `track`) and a tw
 ## 2026-11-20 — BETA v0.105 TRACK startup and guide corrections
 
 Fixed a startup crash when `instrumentsMidiMode=track` is saved: the static background renderer now accesses track names only after a MIDI file has actually been loaded, and falls back to the empty channel layout beforehand. Restored C3 and octave-C guide markers in TRACK MODE as well as MIDI MODE. Disabled automatic window growth when switching display modes; the existing growth-on-file-load behavior remains available for large arrangements. Executable: `VISTA12HEURES_v0.105.EXE`; source: `SOURCE/VISTA12HEURES_v0.105.cpp`.
+
+
+## 2026-11-20 — BETA v0.106b MIDI Control Change playback
+
+Restarted from the validated v0.105 source. Added parsing of channel Control Change messages (status 0xB0) in Standard MIDI Files and scheduled transmission through WinMM MIDI output. During seeking, prior Control Change events are replayed so the receiving synthesizer can reconstruct its controller state at the selected position. MIDI PIXEL forwards controller number/value pairs without hard-coding their musical interpretation; the destination synthesizer handles controller meanings such as filter cutoff or effects sends. The v0.105 interface, display modes, playback and seeking behaviour are otherwise retained. Executable: `VISTA12HEURES_v0.106b.EXE`; source: `SOURCE/VISTA12HEURES_v0.106b.cpp`.
