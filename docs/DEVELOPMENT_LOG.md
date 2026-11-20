@@ -117,3 +117,8 @@ Added a borderless companion information window docked to the right of the main 
 ## 2026-11-20 — BETA v0.04 main-window layout
 
 Rearranged the existing interface elements without introducing the next planned feature set. The sixteen channel rows move upward into the dedicated visual area, with CH and PROGRAM labels below them. The piece title and track/resolution information sit beneath the note display, while live tempo and time signature move to the lower-left information block. The progress strip displays the MIDI filename at left and elapsed/total time at right in mm:ss. SETTINGS, LOAD, INFO, STOP and PLAY are repositioned to match the revised transport layout; the application name, version and authorship line are placed at the bottom. The settings button is currently a visual placeholder. Executable: VISTA12HEURES_v0.04.EXE; source: SOURCE/VISTA12HEURES_v0.04.cpp.
+
+
+## 2026-11-20 — BETA v0.04 layout correction
+
+Corrected the note-marker row origin to match the raised channel guides, restoring each active note marker to its intended position immediately above its MIDI channel line. Separated the track-count/ticks-per-quarter line from the live tempo and time-signature lines in the lower-left information block. This is a corrective rebuild of BETA v0.04; no new features or configuration options were added.
