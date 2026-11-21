@@ -93,6 +93,8 @@ static COLORREF g_footerAppColor=RGB(30,30,45),g_footerAuthorColor=RGB(30,30,45)
 static bool g_fullscreen=false;
 static bool g_miniMode=false;
 static RECT g_miniRestoreRect={};
+static const int MINI_TRANSPORT_HEIGHT=54;
+static const int MINI_SCREEN_X=168,MINI_SCREEN_W=128,MINI_SCREEN_H=34;
 static bool g_startFullscreen=false;
 static COLORREF g_windowButtonsColor=RGB(49,46,72);
 static RECT g_windowedRect={};
@@ -985,12 +987,17 @@ static void ToggleMiniMode(HWND hwnd) {
         g_miniMode=true;
         if(g_infoWnd)ShowWindow(g_infoWnd,SW_HIDE);
         if(g_settingsWnd)ShowWindow(g_settingsWnd,SW_HIDE);
-        SetWindowPos(hwnd,HWND_TOP,g_miniRestoreRect.left,g_miniRestoreRect.top,210,52,SWP_NOOWNERZORDER|SWP_NOACTIVATE);
+        int miniHeight=g_progressHeight+MINI_TRANSPORT_HEIGHT;
+        int miniTop=g_miniRestoreRect.bottom-miniHeight;
+        SetWindowPos(hwnd,HWND_TOP,g_miniRestoreRect.left,miniTop,
+            g_miniRestoreRect.right-g_miniRestoreRect.left,miniHeight,
+            SWP_NOOWNERZORDER|SWP_NOACTIVATE);
     } else {
         g_miniMode=false;
-        int w=g_miniRestoreRect.right-g_miniRestoreRect.left,h=g_miniRestoreRect.bottom-g_miniRestoreRect.top;
-        if(w<500)w=760;if(h<350)h=500;
-        SetWindowPos(hwnd,HWND_TOP,g_miniRestoreRect.left,g_miniRestoreRect.top,w,h,SWP_NOOWNERZORDER|SWP_NOACTIVATE);
+        SetWindowPos(hwnd,HWND_TOP,g_miniRestoreRect.left,g_miniRestoreRect.top,
+            g_miniRestoreRect.right-g_miniRestoreRect.left,
+            g_miniRestoreRect.bottom-g_miniRestoreRect.top,
+            SWP_NOOWNERZORDER|SWP_NOACTIVATE);
     }
     DestroyBackBuffer();InvalidateRect(hwnd,NULL,FALSE);
 }
@@ -1035,14 +1042,40 @@ static void Paint(HWND hwnd) {
     PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
     RECT cr; GetClientRect(hwnd, &cr);
     if(g_miniMode) {
+        const int controlsY=g_progressHeight+9;
         FillRectColor(dc,cr,g_uiBackground);
-        RECT screen={8,8,136,42};FillRectColor(dc,screen,RGB(25,23,38));DrawWindowButtonFrame(dc,screen,g_uiLines);
-        for(int ch=0;ch<MIDI_CHANNELS;++ch){
-            int guideY=9+ch*2;HPEN guide=CreatePen(PS_SOLID,1,g_uiLines);HPEN old=(HPEN)SelectObject(dc,guide);
-            MoveToEx(dc,9,guideY,NULL);LineTo(dc,135,guideY);SelectObject(dc,old);DeleteObject(guide);
-            for(int note=0;note<MIDI_NOTES;++note)if(g_active[ch][note]){COLORREF color=(ch==9)?ColorForPercussion(g_velocity[ch][note]):ColorForNote(note,g_velocity[ch][note]);SetPixelV(dc,8+note,guideY-1,color);}
+        FillRectColor(dc,RECT{0,0,cr.right,g_progressHeight},g_uiTransportTop);
+        FillRectColor(dc,RECT{0,2,ProgressWidth(cr.right),g_progressHeight-2},g_uiProgress);
+        FillRectColor(dc,RECT{0,g_progressHeight,cr.right,cr.bottom},g_uiTransportBottom);
+        FillRectColor(dc,RECT{0,0,cr.right,2},g_uiTransportEdge);
+        TCHAR timeText[64];unsigned long long es=g_elapsedUsec/1000000ULL,ts=g_totalUsec/1000000ULL;
+        _stprintf_s(timeText,_T("%02llu:%02llu  /  %02llu:%02llu"),es/60,es%60,ts/60,ts%60);
+        int fs=g_progressHeight-2;if(fs<8)fs=8;if(fs>26)fs=26;
+        HFONT mf=CreateFont(fs,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH|FF_DONTCARE,_T("Segoe UI"));
+        HFONT om=(HFONT)SelectObject(dc,mf);SIZE z={};GetTextExtentPoint32(dc,timeText,lstrlen(timeText),&z);SelectObject(dc,om);DeleteObject(mf);
+        int ty=(g_progressHeight-fs)/2;Txt(dc,cr.right-z.cx-14,ty,timeText,RGB(235,235,242),fs);Txt(dc,20,ty,g_fileName,RGB(235,235,242),fs);
+        Txt(dc,40,controlsY,_T("SETTINGS"),RGB(235,235,242),12);
+        Txt(dc,cr.right/2-24,controlsY,_T("LOAD"),RGB(235,235,242),13,FW_SEMIBOLD);
+        Txt(dc,cr.right/2+45,controlsY,_T("INFO"),RGB(190,190,205),13,FW_SEMIBOLD);
+        Txt(dc,cr.right-115,controlsY,_T("STOP"),RGB(235,235,242),12,FW_SEMIBOLD);
+        Txt(dc,cr.right-55,controlsY,_T("PLAY"),RGB(235,235,242),12,FW_SEMIBOLD);
+        RECT mini={MINI_SCREEN_X,controlsY-5,MINI_SCREEN_X+MINI_SCREEN_W,controlsY-5+MINI_SCREEN_H};
+        FillRectColor(dc,mini,RGB(25,23,38));DrawWindowButtonFrame(dc,mini,g_uiLines);
+        for(int ch=0;ch<MIDI_CHANNELS;++ch) {
+            int gy=mini.top+1+ch*2;HPEN guide=CreatePen(PS_SOLID,1,g_uiLines);HPEN old=(HPEN)SelectObject(dc,guide);
+            MoveToEx(dc,mini.left+1,gy,NULL);LineTo(dc,mini.left+MINI_SCREEN_W-1,gy);SelectObject(dc,old);DeleteObject(guide);
+            for(int note=0;note<MIDI_NOTES;++note)if(g_active[ch][note]) {
+                int px=mini.left+1+(note*(MINI_SCREEN_W-2))/MIDI_NOTES;
+                COLORREF color=(ch==9)?ColorForPercussion(g_velocity[ch][note]):ColorForNote(note,g_velocity[ch][note]);
+                SetPixelV(dc,px,gy-1,color);
+            }
         }
-        RECT restore={145,16,202,36};FillRectColor(dc,restore,g_windowButtonsColor);DrawWindowButtonFrame(dc,restore,g_uiLines);TxtCenteredMono(dc,restore,_T("NORMAL"),RGB(235,235,242),9,FW_BOLD);
+        RECT normal={MINI_SCREEN_X+MINI_SCREEN_W+7,controlsY+1,MINI_SCREEN_X+MINI_SCREEN_W+65,controlsY+22};
+        FillRectColor(dc,normal,g_windowButtonsColor);DrawWindowButtonFrame(dc,normal,g_uiLines);
+        TxtCenteredMono(dc,normal,_T("NORMAL"),RGB(235,235,242),9,FW_BOLD);
+        Txt(dc,cr.right/2-48,cr.bottom-17,_T("MIDI PIXEL"),g_footerAppColor,g_footerAppSize);
+        Txt(dc,cr.right/2+50,cr.bottom-17,VERSION,g_footerVersionColor,g_footerVersionSize);
+        Txt(dc,cr.right-95,cr.bottom-16,_T("cslevine+IA"),g_footerAuthorColor,g_footerAuthorSize);
         EndPaint(hwnd,&ps);return;
     }
     if (EnsureBackBuffer(hwnd)) BitBlt(dc, ps.rcPaint.left, ps.rcPaint.top,
@@ -1211,7 +1244,24 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_LBUTTONDOWN: {
         RECT client; GetClientRect(hwnd, &client);
-        if(g_miniMode){int x=LOWORD(lp),y=HIWORD(lp);if(x>=145&&x<203&&y>=16&&y<37){ToggleMiniMode(hwnd);return 0;}ReleaseCapture();SendMessage(hwnd,WM_NCLBUTTONDOWN,HTCAPTION,0);return 0;}
+        if(g_miniMode){
+            int x=LOWORD(lp),y=HIWORD(lp),controlsY=g_progressHeight+9;
+            if(g_loaded&&y>=0&&y<g_progressHeight){SeekPlayback(hwnd,x);return 0;}
+            RECT normal={MINI_SCREEN_X+MINI_SCREEN_W+7,controlsY+1,MINI_SCREEN_X+MINI_SCREEN_W+65,controlsY+22};
+            if(x>=normal.left&&x<normal.right&&y>=normal.top&&y<normal.bottom){ToggleMiniMode(hwnd);return 0;}
+            if(y>=g_progressHeight){
+                if(x>=client.right-85&&x<client.right-30){StartPlayback();InvalidateDynamic(hwnd);return 0;}
+                if(x>=client.right-150&&x<client.right-90){StopPlayback();InvalidateDynamic(hwnd);return 0;}
+                if(x>=25&&x<125){ShowMidiOutputSettings(hwnd);return 0;}
+                if(x>=client.right/2-45&&x<client.right/2+35){LoadDialog(hwnd);return 0;}
+                if(x>=client.right/2+35&&x<client.right/2+125){
+                    if(g_infoWnd&&IsWindowVisible(g_infoWnd))ShowWindow(g_infoWnd,SW_HIDE);
+                    else if(g_infoWnd){InvalidateRect(g_infoWnd,NULL,TRUE);ShowWindow(g_infoWnd,SW_SHOWNOACTIVATE);}
+                    return 0;
+                }
+            }
+            ReleaseCapture();SendMessage(hwnd,WM_NCLBUTTONDOWN,HTCAPTION,0);return 0;
+        }
         int x = LOWORD(lp), y = HIWORD(lp), barY = client.bottom - 77;
         if (g_loaded && y >= barY && y < barY + g_progressHeight) {
             SeekPlayback(hwnd, x);

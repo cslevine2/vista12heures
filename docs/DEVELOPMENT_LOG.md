@@ -197,3 +197,8 @@ Added three compact window controls in the upper-right corner: minimize, fullscr
 ## 2026-11-21 — BETA v2.01 compact MINI visualization
 
 Added an optional MINI window mode, activated by a fourth custom window control. The normal player remains the default and retains its existing display. MINI uses the sixteen MIDI channel rows regardless of the selected normal display mode: each channel has a one-pixel horizontal guide, and each active MIDI note is represented by one pixel at its note-number position across the 128-note range. Note colors and percussion coloring are retained. A NORMAL button immediately beside the mini display restores the previous normal window rectangle. Entering MINI hides companion panels; the compact mode does not overwrite the saved normal-window geometry or fullscreen preference. Executable: `VISTA12HEURES_v2.01.EXE`; source: `SOURCE/VISTA12HEURES_v2.01.cpp`.
+
+
+## 2026-11-21 — v2.01 MINI transport-base layout refinement
+
+Refined MINI mode to retain the complete lower transport base of the normal player instead of opening a separate 210x52 window. The compact window keeps the saved normal window's left coordinate and bottom edge. Its height is `ProgressHeight + MINI_TRANSPORT_HEIGHT` (fixed transport zone: 54 px), so its top coordinate is `normalTop + normalHeight - miniHeight`. The progress strip, filename/time, SETTINGS, LOAD, INFO, STOP, PLAY and footer remain visible. The 128x34 mini channel display is integrated beside the transport controls, with a NORMAL button immediately beside it. Returning restores the exact saved normal rectangle. The normal view is otherwise unchanged.
