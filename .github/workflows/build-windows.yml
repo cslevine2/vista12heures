@@ -24,7 +24,8 @@ jobs:
           $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvarsall.bat"
           if (-not (Test-Path $vcvars)) { throw "MSVC environment script not found: $vcvars" }
           $exe = "VISTA12HEURES_v0.3.EXE"
-          $command = "`"$vcvars`" x86 && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.3.cpp /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib shell32.lib gdiplus.lib"
+          $resource = "MIDI_PIXEL.res"
+          $command = "`"$vcvars`" x86 && rc /nologo /fo $resource RESOURCES\MIDIPIXEL.rc && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.3.cpp $resource /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib shell32.lib gdiplus.lib"
           cmd.exe /d /c $command
           if ($LASTEXITCODE -ne 0) { throw "MSVC compilation failed with exit code $LASTEXITCODE" }
           if (-not (Test-Path $exe)) { throw "$exe was not produced." }
