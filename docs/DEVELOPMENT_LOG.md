@@ -219,3 +219,8 @@ Reversed the vertical channel order in MINI so it matches the normal channel lay
 ## v0.204 — precise MINI pixel refresh and configurable linear-control color
 
 Reduced MINI repainting to the exact 1x1 pixel affected by each Note On/Note Off event. This avoids repainting the mini display background and frame for every note transition and should eliminate the brief frame flicker seen during playback. Added the MidiLinearControlsColor RGB setting, loaded from SETTINGS.INI, to control the color of both the Expression (CC11) linear bars and Pan (CC10) position indicators at the left of tracks in TRACK MODE. Default: 205,150,55. The pan center reference line remains independently configurable through verticalPanCenterLine.
+
+
+## v0.205 — MINI pixel refresh coordinate correction and vertical centering
+
+Corrected the one-pixel invalidation Y coordinate: the drawn pixel is inset one pixel below the mini rectangle's top edge, and the invalidation now uses that exact same coordinate. This fixes the regression where note pixels appeared frozen until another repaint event. Centered the mini display vertically within the fixed 54-pixel transport zone using `(MINI_TRANSPORT_HEIGHT - MINI_SCREEN_H) / 2`; the drawing rectangle, hit-test rectangle and pixel invalidation all share this calculated anchor.

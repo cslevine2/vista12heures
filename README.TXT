@@ -22,3 +22,6 @@ v0.203: MINI channel order now matches the normal channel display (channel 16 at
 
 
 v0.204: MINI note updates now invalidate only the individual 1x1 note pixel, rather than the whole mini display, reducing frame and background flicker. Added the MidiLinearControlsColor RGB setting for the Expression (CC11) bars and Pan (CC10) indicators shown at the left of tracks in TRACK MODE.
+
+
+v0.205: Corrected MINI pixel invalidation coordinates so the invalidated 1x1 rectangle exactly matches the drawn note pixel (including the one-pixel inset inside the mini frame). Vertically centered the mini display within the fixed transport zone.
