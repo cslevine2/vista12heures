@@ -1216,7 +1216,7 @@ static void LoadAuthorsGif(HWND hwnd) {
  WCHAR wp[MAX_PATH]={};MultiByteToWideChar(CP_ACP,0,path,-1,wp,MAX_PATH);
 #endif
  g_authorsGif=Gdiplus::Image::FromFile(wp,FALSE);if(!g_authorsGif||g_authorsGif->GetLastStatus()!=Gdiplus::Ok){delete g_authorsGif;g_authorsGif=NULL;return;}
- UINT n=0;g_authorsGif->GetFrameDimensionsCount(&n);if(!n)return;std::vector<GUID> ids(n);g_authorsGif->GetFrameDimensionsList(ids.data(),n);
+ UINT n=g_authorsGif->GetFrameDimensionsCount();if(!n)return;std::vector<GUID> ids(n);g_authorsGif->GetFrameDimensionsList(ids.data(),n);
  for(UINT i=0;i<n;++i)if(ids[i]==Gdiplus::FrameDimensionTime){g_gifFrameDimension=ids[i];break;}
  g_gifFrameCount=g_authorsGif->GetFrameCount(&g_gifFrameDimension);if(g_gifFrameCount>1)SetTimer(hwnd,2,100,NULL);
 }
