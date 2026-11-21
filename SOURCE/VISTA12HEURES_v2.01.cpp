@@ -644,6 +644,7 @@ static void InvalidateInfoBlock(HWND hwnd) {
     InvalidateRect(hwnd,&info,FALSE);
 }
 static void InvalidateDynamic(HWND hwnd) {
+    if(g_miniMode){InvalidateRect(hwnd,NULL,FALSE);return;}
     RECT r;
     GetClientRect(hwnd, &r);
     RECT notes={20,32,r.right-20,34+DisplayRowCount()*18};InvalidateRect(hwnd,&notes,FALSE);
