@@ -192,3 +192,8 @@ Replaced the TRACK MODE Volume (CC7) mini-bar with an Expression (CC11) mini-bar
 ## 2026-11-20 — BETA v0.2 window controls and remembered display state
 
 Added three compact window controls in the upper-right corner: minimize, fullscreen toggle (same monitor-filling behavior as the F key), and close. Their background color is configurable through `WindowButtonsColor` in SETTINGS.INI. The current display state is stored as `WindowsState` (`0` windowed, `1` fullscreen); the saved windowed position and dimensions remain intact while fullscreen is active, and fullscreen is restored on the next launch when requested. Executable: `VISTA12HEURES_v0.2.EXE`; source: `SOURCE/VISTA12HEURES_v0.2.cpp`.
+
+
+## 2026-11-21 — BETA v2.01 compact MINI visualization
+
+Added an optional MINI window mode, activated by a fourth custom window control. The normal player remains the default and retains its existing display. MINI uses the sixteen MIDI channel rows regardless of the selected normal display mode: each channel has a one-pixel horizontal guide, and each active MIDI note is represented by one pixel at its note-number position across the 128-note range. Note colors and percussion coloring are retained. A NORMAL button immediately beside the mini display restores the previous normal window rectangle. Entering MINI hides companion panels; the compact mode does not overwrite the saved normal-window geometry or fullscreen preference. Executable: `VISTA12HEURES_v2.01.EXE`; source: `SOURCE/VISTA12HEURES_v2.01.cpp`.
