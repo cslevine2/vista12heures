@@ -25,3 +25,6 @@ v0.204: MINI note updates now invalidate only the individual 1x1 note pixel, rat
 
 
 v0.205: Corrected MINI pixel invalidation coordinates so the invalidated 1x1 rectangle exactly matches the drawn note pixel (including the one-pixel inset inside the mini frame). Vertically centered the mini display within the fixed transport zone.
+
+
+v0.206: Added configurable SharpPixelShift vertical offset for sharp-note pixels (C#, D#, F#, G#, A#) in both MIDI and TRACK display modes. The default is 1 pixel; set SharpPixelShift=0 for the original aligned display. MINI display background now uses the same Background color as the main window.

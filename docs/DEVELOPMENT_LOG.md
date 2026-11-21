@@ -224,3 +224,8 @@ Reduced MINI repainting to the exact 1x1 pixel affected by each Note On/Note Off
 ## v0.205 — MINI pixel refresh coordinate correction and vertical centering
 
 Corrected the one-pixel invalidation Y coordinate: the drawn pixel is inset one pixel below the mini rectangle's top edge, and the invalidation now uses that exact same coordinate. This fixes the regression where note pixels appeared frozen until another repaint event. Centered the mini display vertically within the fixed 54-pixel transport zone using `(MINI_TRANSPORT_HEIGHT - MINI_SCREEN_H) / 2`; the drawing rectangle, hit-test rectangle and pixel invalidation all share this calculated anchor.
+
+
+## v0.206 — sharp-note pixel offset and unified MINI background
+
+Added the `SharpPixelShift` setting (default 1, clamped from 0 to 8 pixels) to raise the five sharp pitch classes (C#, D#, F#, G#, A#) slightly above natural-note pixels in both MIDI and TRACK modes. Setting it to 0 restores the original aligned rows. The shared `NoteRect` geometry applies the offset to drawing and live invalidation alike. MINI display background now uses the configured `Background` color, matching the main window. Executable: `VISTA12HEURES_v0.206.EXE`; source: `SOURCE/VISTA12HEURES_v0.206.cpp`.
