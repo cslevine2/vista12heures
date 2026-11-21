@@ -16,3 +16,6 @@ v2.01 MINI layout refinement: MINI is the lower transport base of the original p
 VERSION HISTORY NOTE — The source and archive labels briefly used “v2.01” after v0.2. This was a numbering mistake during development, not a separate major-version branch. Development resumes with v0.202; the earlier archive filenames may be renamed locally to keep the user's archive sequence consistent.
  
 v0.202: MINI display refinement. The compact transport base now shows only the 16 rows of active-note pixels (no guide lines and no NORMAL button). Clicking the mini display itself restores the full normal window. The original normal display remains unchanged.
+
+
+v0.203: MINI channel order now matches the normal channel display (channel 16 at the top, channel 1 at the bottom). Active-note pixels refresh during playback in real time; the mini display and its progress/time strip are invalidated in their actual compact-window coordinates.

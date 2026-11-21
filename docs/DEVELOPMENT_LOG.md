@@ -209,3 +209,8 @@ Refined MINI mode to retain the complete lower transport base of the normal play
 The preceding development files were temporarily labeled v2.01 by mistake after v0.2. This was a numbering error, not an intended major-version change. The sequence resumes at v0.202; the user will rename their local archive files as needed.
  
 In MINI mode, removed the horizontal guide lines and the separate NORMAL button. The 16 MIDI channels remain represented by 16 distinct one-pixel rows; only active notes are drawn, one pixel per MIDI note, using the existing channel-note colors and dedicated percussion color. Clicking anywhere inside the mini display returns to the full normal window. The mini display was moved slightly upward within the transport base to avoid colliding with the footer. The normal-mode display and behavior are untouched.
+
+
+## v0.203 — MINI channel order and live refresh
+
+Reversed the vertical channel order in MINI so it matches the normal channel layout: MIDI channel 16 at the top and channel 1 at the bottom. Fixed live note refresh by invalidating the mini-note display rectangle when note-on/note-off events are processed; the previous invalidation used the full-size normal-view note coordinates, outside the compact window. Also corrected progress/time-strip invalidation to use the compact window's top coordinates, so its display remains live while playing.
