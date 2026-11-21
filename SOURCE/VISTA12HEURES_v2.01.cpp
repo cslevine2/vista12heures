@@ -94,7 +94,7 @@ static bool g_fullscreen=false;
 static bool g_miniMode=false;
 static RECT g_miniRestoreRect={};
 static const int MINI_TRANSPORT_HEIGHT=54;
-static const int MINI_SCREEN_X=168,MINI_SCREEN_W=128,MINI_SCREEN_H=34;
+static const int MINI_SCREEN_X=168,MINI_SCREEN_W=130,MINI_SCREEN_H=34;
 static bool g_startFullscreen=false;
 static COLORREF g_windowButtonsColor=RGB(49,46,72);
 static RECT g_windowedRect={};
@@ -1065,7 +1065,7 @@ static void Paint(HWND hwnd) {
             int gy=mini.top+1+ch*2;HPEN guide=CreatePen(PS_SOLID,1,g_uiLines);HPEN old=(HPEN)SelectObject(dc,guide);
             MoveToEx(dc,mini.left+1,gy,NULL);LineTo(dc,mini.left+MINI_SCREEN_W-1,gy);SelectObject(dc,old);DeleteObject(guide);
             for(int note=0;note<MIDI_NOTES;++note)if(g_active[ch][note]) {
-                int px=mini.left+1+(note*(MINI_SCREEN_W-2))/MIDI_NOTES;
+                int px=mini.left+1+note;
                 COLORREF color=(ch==9)?ColorForPercussion(g_velocity[ch][note]):ColorForNote(note,g_velocity[ch][note]);
                 SetPixelV(dc,px,gy-1,color);
             }
