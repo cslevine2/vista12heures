@@ -19,3 +19,6 @@ v0.202: MINI display refinement. The compact transport base now shows only the 1
 
 
 v0.203: MINI channel order now matches the normal channel display (channel 16 at the top, channel 1 at the bottom). Active-note pixels refresh during playback in real time; the mini display and its progress/time strip are invalidated in their actual compact-window coordinates.
+
+
+v0.204: MINI note updates now invalidate only the individual 1x1 note pixel, rather than the whole mini display, reducing frame and background flicker. Added the MidiLinearControlsColor RGB setting for the Expression (CC11) bars and Pan (CC10) indicators shown at the left of tracks in TRACK MODE.

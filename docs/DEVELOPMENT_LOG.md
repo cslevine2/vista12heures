@@ -214,3 +214,8 @@ In MINI mode, removed the horizontal guide lines and the separate NORMAL button.
 ## v0.203 — MINI channel order and live refresh
 
 Reversed the vertical channel order in MINI so it matches the normal channel layout: MIDI channel 16 at the top and channel 1 at the bottom. Fixed live note refresh by invalidating the mini-note display rectangle when note-on/note-off events are processed; the previous invalidation used the full-size normal-view note coordinates, outside the compact window. Also corrected progress/time-strip invalidation to use the compact window's top coordinates, so its display remains live while playing.
+
+
+## v0.204 — precise MINI pixel refresh and configurable linear-control color
+
+Reduced MINI repainting to the exact 1x1 pixel affected by each Note On/Note Off event. This avoids repainting the mini display background and frame for every note transition and should eliminate the brief frame flicker seen during playback. Added the MidiLinearControlsColor RGB setting, loaded from SETTINGS.INI, to control the color of both the Expression (CC11) linear bars and Pan (CC10) position indicators at the left of tracks in TRACK MODE. Default: 205,150,55. The pan center reference line remains independently configurable through verticalPanCenterLine.
