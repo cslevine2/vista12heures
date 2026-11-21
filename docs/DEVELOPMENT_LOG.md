@@ -229,3 +229,8 @@ Corrected the one-pixel invalidation Y coordinate: the drawn pixel is inset one 
 ## v0.206 — sharp-note pixel offset and unified MINI background
 
 Added the `SharpPixelShift` setting (default 1, clamped from 0 to 8 pixels) to raise the five sharp pitch classes (C#, D#, F#, G#, A#) slightly above natural-note pixels in both MIDI and TRACK modes. Setting it to 0 restores the original aligned rows. The shared `NoteRect` geometry applies the offset to drawing and live invalidation alike. MINI display background now uses the configured `Background` color, matching the main window. Executable: `VISTA12HEURES_v0.206.EXE`; source: `SOURCE/VISTA12HEURES_v0.206.cpp`.
+
+
+## v0.3 — credits, history and animated authors panel
+
+Added a reusable full-height side panel. Clicking the MIDI PIXEL footer label loads `MIDIPIXELS.TXT`; clicking the displayed version loads `history.TXT`; clicking `cslevine+IA` displays `auteurs.GIF` with frame playback looping continuously. The three external files are read from the executable folder, so text and animation assets can be edited independently of the program. `InfoWindowWidth` in `SETTINGS.INI` controls the panel width (default 350 pixels; accepted range 160–1000). GIF decoding and drawing use GDI+ (`gdiplus.lib`). The three content modes share the existing side window used by MIDI file information.

@@ -28,3 +28,6 @@ v0.205: Corrected MINI pixel invalidation coordinates so the invalidated 1x1 rec
 
 
 v0.206: Added configurable SharpPixelShift vertical offset for sharp-note pixels (C#, D#, F#, G#, A#) in both MIDI and TRACK display modes. The default is 1 pixel; set SharpPixelShift=0 for the original aligned display. MINI display background now uses the same Background color as the main window.
+
+
+v0.3: Added a reusable full-height side panel. Clicking the MIDI PIXEL footer label opens MIDIPIXELS.TXT, clicking the version opens history.TXT, and clicking cslevine+IA opens the looping auteurs.GIF animation. These files are read from the executable folder and remain externally editable. The panel width is configurable with InfoWindowWidth (default 350 pixels). Animated GIF playback uses Windows GDI+.
