@@ -202,3 +202,10 @@ Added an optional MINI window mode, activated by a fourth custom window control.
 ## 2026-11-21 — v2.01 MINI transport-base layout refinement
 
 Refined MINI mode to retain the complete lower transport base of the normal player instead of opening a separate 210x52 window. The compact window keeps the saved normal window's left coordinate and bottom edge. Its height is `ProgressHeight + MINI_TRANSPORT_HEIGHT` (fixed transport zone: 54 px), so its top coordinate is `normalTop + normalHeight - miniHeight`. The progress strip, filename/time, SETTINGS, LOAD, INFO, STOP, PLAY and footer remain visible. The 128x34 mini channel display is integrated beside the transport controls, with a NORMAL button immediately beside it. Returning restores the exact saved normal rectangle. The normal view is otherwise unchanged.
+
+ 
+## v0.202 — MINI pixel display refinement and version sequence correction
+ 
+The preceding development files were temporarily labeled v2.01 by mistake after v0.2. This was a numbering error, not an intended major-version change. The sequence resumes at v0.202; the user will rename their local archive files as needed.
+ 
+In MINI mode, removed the horizontal guide lines and the separate NORMAL button. The 16 MIDI channels remain represented by 16 distinct one-pixel rows; only active notes are drawn, one pixel per MIDI note, using the existing channel-note colors and dedicated percussion color. Clicking anywhere inside the mini display returns to the full normal window. The mini display was moved slightly upward within the transport base to avoid colliding with the footer. The normal-mode display and behavior are untouched.

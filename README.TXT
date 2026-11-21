@@ -11,3 +11,8 @@ BETA v2.01 adds an optional compact MINI window. The standard NORMAL window rema
 
 
 v2.01 MINI layout refinement: MINI is the lower transport base of the original player, not a separate tiny floating window. It retains the original window width and bottom screen anchor; its top edge is calculated from the saved normal rectangle by subtracting ProgressHeight plus the fixed transport-zone height. The progress bar, transport commands, mini 16-channel display, NORMAL return button and footer remain together in this compact base.
+
+ 
+VERSION HISTORY NOTE — The source and archive labels briefly used “v2.01” after v0.2. This was a numbering mistake during development, not a separate major-version branch. Development resumes with v0.202; the earlier archive filenames may be renamed locally to keep the user's archive sequence consistent.
+ 
+v0.202: MINI display refinement. The compact transport base now shows only the 16 rows of active-note pixels (no guide lines and no NORMAL button). Clicking the mini display itself restores the full normal window. The original normal display remains unchanged.
