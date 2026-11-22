@@ -940,7 +940,7 @@ static void DrawMetadataBlock(HDC dc,int width,int height) {
     if(!g_loaded)return;
     const int barY=height-77;
     const int timelineX=225;
-// Metadata: Sequence name (0x03), first Lyrics (0x05), current Marker (0x06), Copyright (0x02).
+// Metadata: Sequence name (0x03), first Text Event (0x01), current Marker (0x06), Copyright (0x02).
 const int titleLineHeight=g_trackTitleFontSize+5;
 const int eventLineHeight=(g_textesFontSize>11?g_textesFontSize:11)+5;
 const int blockHeight=titleLineHeight+3*eventLineHeight;
