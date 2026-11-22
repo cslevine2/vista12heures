@@ -15,7 +15,7 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Configure MSVC and compile 32-bit test executable
+      - name: Configure MSVC and compile 32-bit executable
         shell: powershell
         run: |
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
@@ -23,21 +23,32 @@ jobs:
           if (-not $vs) { throw "Visual Studio installation not found." }
           $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvarsall.bat"
           if (-not (Test-Path $vcvars)) { throw "MSVC environment script not found: $vcvars" }
-          $exe = "VISTA12HEURES_v0.3.EXE"
+          $exe = "VISTA12HEURES_v0.301.EXE"
           $resource = "MIDI_PIXEL.res"
-          $command = "`"$vcvars`" x86 && rc /nologo /fo $resource RESOURCES\MIDIPIXEL.rc && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.3.cpp $resource /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib shell32.lib gdiplus.lib"
+          $command = "`"$vcvars`" x86 && rc /nologo /fo $resource RESOURCES\MIDIPIXEL.rc && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.301.cpp $resource /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib shell32.lib gdiplus.lib"
           cmd.exe /d /c $command
           if ($LASTEXITCODE -ne 0) { throw "MSVC compilation failed with exit code $LASTEXITCODE" }
           if (-not (Test-Path $exe)) { throw "$exe was not produced." }
 
-      - name: Upload versioned test package
+      - name: Assemble versioned package
+        shell: powershell
+        run: |
+          $package = "PACKAGE_v0.301"
+          New-Item -ItemType Directory -Force -Path $package | Out-Null
+          Copy-Item "VISTA12HEURES_v0.301.EXE" "$package\"
+          Copy-Item "SETTINGS_v0.301.INI" "$package\SETTINGS.INI"
+          foreach ($asset in @("GM-XG.XML", "MIDIPIXELS.TXT", "history.TXT", "auteurs.GIF")) {
+            if (Test-Path $asset) { Copy-Item $asset "$package\" }
+          }
+          New-Item -ItemType Directory -Force -Path "$package\SOURCE" | Out-Null
+          Copy-Item "SOURCE\VISTA12HEURES_v0.301.cpp" "$package\SOURCE\"
+          Copy-Item "RESOURCES\Midipixel.ico" "$package\"
+          if (-not (Test-Path "$package\SETTINGS.INI")) { throw "Versioned SETTINGS.INI missing." }
+
+      - name: Upload versioned package
         uses: actions/upload-artifact@v4
         with:
-          name: VISTA12HEURES_v0.3
-          path: |
-            VISTA12HEURES_v0.3.EXE
-            SETTINGS.INI
-            GM-XG.XML
-            SOURCE/VISTA12HEURES_v0.3.cpp
+          name: VISTA12HEURES_v0.301
+          path: PACKAGE_v0.301\
           if-no-files-found: error
           retention-days: 30
