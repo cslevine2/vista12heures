@@ -1281,6 +1281,12 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_MOUSEWHEEL: {
         RECT client; GetClientRect(hwnd,&client);
         int maxScroll=(int)(g_infoText.size()*18)-(client.bottom-48);
+        if(g_infoContent==0) {
+            size_t chars=0;
+            for(size_t i=0;i<g_midiText.size();++i)
+                if(g_midiText[i].label=="Text"||g_midiText[i].label=="Lyric"||g_midiText[i].label=="Cue")chars+=g_midiText[i].text.size();
+            maxScroll=(int)(chars/38)*14+100-(client.bottom-48);
+        }
         if(maxScroll<0)maxScroll=0;
         g_infoScroll-=GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA*57;
         if(g_infoScroll<0)g_infoScroll=0;if(g_infoScroll>maxScroll)g_infoScroll=maxScroll;
@@ -1312,15 +1318,15 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             EndPaint(hwnd,&ps);return 0;
         }
         if(g_infoContent==1||g_infoContent==2){if(g_infoText.empty())Txt(dc,14,48,_T("Text file not found beside the EXE."),RGB(205,210,225),10);else{RECT tr={14,43-g_infoScroll,r.right-14,r.bottom-12};SetTextColor(dc,RGB(225,225,232));SetBkMode(dc,TRANSPARENT);DrawText(dc,g_infoText.data(),-1,&tr,DT_LEFT|DT_TOP|DT_WORDBREAK|DT_NOPREFIX);}EndPaint(hwnd,&ps);return 0;}
-        int y=43-g_infoScroll;
-        Txt(dc,14,y,_T("FILE"),RGB(160,170,195),9,FW_BOLD); y+=18;
+        int y=43;
+        Txt(dc,14,y-g_infoScroll,_T("FILE"),RGB(160,170,195),9,FW_BOLD); y+=18;
         TCHAR file[512]={};
 #ifdef UNICODE
         MultiByteToWideChar(CP_ACP,0,g_fileName,-1,file,512);
 #else
         lstrcpynA(file,g_fileName,512);
 #endif
-        TxtClipped(dc,RECT{14,y,r.right-14,y+18},file,RGB(235,235,242),11); y+=28;
+        TxtClipped(dc,RECT{14,y-g_infoScroll,r.right-14,y-g_infoScroll+18},file,RGB(235,235,242),11); y+=28;
         const char* labels[3]={"Text","Lyric","Cue"};
         const TCHAR* headings[3]={_T("0x01  TEXT EVENT"),_T("0x05  LYRICS"),_T("0x07  CUE POINT")};
         for(int section=0;section<3;++section) {
