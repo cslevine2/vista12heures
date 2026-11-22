@@ -939,11 +939,14 @@ static void SaveWindow(HWND hwnd) {
 static void DrawMetadataBlock(HDC dc,int width,int height) {
     if(!g_loaded)return;
     const int barY=height-77;
+    const int timelineX=225;
 // Metadata: Sequence name (0x03), first Lyrics (0x05), current Marker (0x06), Copyright (0x02).
 const int titleLineHeight=g_trackTitleFontSize+5;
 const int eventLineHeight=(g_textesFontSize>11?g_textesFontSize:11)+5;
 const int blockHeight=titleLineHeight+3*eventLineHeight;
 int blockY=barY-8-blockHeight;
+RECT metadataBackground={timelineX,blockY,width-24,blockY+blockHeight};
+FillRectColor(dc,metadataBackground,g_uiBackground);
 const MidiTextInfo* sequenceName=NULL;
 const MidiTextInfo* firstTextEvent=NULL;
 const MidiTextInfo* currentMarker=NULL;
