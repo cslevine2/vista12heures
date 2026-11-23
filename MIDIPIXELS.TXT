@@ -1,0 +1,20 @@
+
+
+
+MIDI PIXEL  -  La musique devient visible
+
+
+Né d'une fascination ancienne pour la visualisation graphique de la musique, et de l'informatique musicale, MIDI PIXEL fait revivre une idée qui remonte aux premiers ordinateurs personnels, à l'époque de l'Apple II et de ses "music cards", à une époque où quelques composants électroniques suffisaient à faire naître les premières expériences de musique assistée par ordinateur, une nouvelle manière d'appréhender le son commençait déjà à émerger : celle de représenter visuellement les événements musicaux.
+
+Aujourd'hui, MIDI PIXEL reprend cet esprit pionnier et le transpose dans l'univers MIDI contemporain.
+
+Son principe est aussi simple qu'original : représenter les 128 notes possibles sous la forme de pixels, répartis sur 16 lignes correspondant aux 16 canaux MIDI. Chaque note possède sa position, sa couleur, sa place dans une étendue allant jusqu'à 10 octaves ! Les événements apparaissent et disparaissent au fil de la lecture, dessinant une représentation vivante de la musique.
+
+On ne regarde plus seulement une partition, une liste de pistes ou un piano-roll : on observe directement l'apparition des notes dans les canaux MIDI, en temps réel. Cette représentation, étonnamment lisible, révèle des structures, des mouvements et des interactions que l'écoute seule ne permet pas toujours de distinguer.
+
+MIDI PIXEL est à la fois un lecteur MIDI, un outil d'observation et une nouvelle fenêtre ouverte sur les oeuvres musicales existantes.
+
+Une renaissance qui relie l'esprit inventif des premiers ordinateurs musicaux aux possibilités actuelles, avec une ambition toute particulière : faire voir la musique, et découvrir autrement ce qui se passe à l'intérieur d'une composition.
+
+
+( L'IA  22.11.2026)
