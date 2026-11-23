@@ -1,0 +1,39 @@
+
+
+v0.304 la taille des PIXEL-NOTES
+       est personnalisable
+       optimisation des testes
+       ( 22.11.2026 )
+
+v0.303 affichage des champs
+       0x03 Title/Track name
+       0x01 text event
+       0x06 copyright
+       optimisation pistes
+       ( 22.11.2026 )
+
+v0.3   affichage des crédits
+       et de ce texte
+       il y a 1 an :
+       "montdialbo.MID"
+
+
+
+
+v0.000 Alpha  ( 19 nov 2026 )
+       il y a 1 an j'étais
+       dans un A350-500
+       de FrenchBee
+
+
+NOTES
+
+Je n'ai pas écrit une seule ligne de programmation ! C'est l'I.A. qui a tout "vibe-codé" en C++ et ce, en ligne et sans que j'ai eu rien à installer sur mon propre ordinateur ! Le requis pour "vibe-coder" ( = faire programmer par ChatGPT ) c'est
+. 1 créer un compte gratuit sur GitHub... avec un dépot public "repository" du nom du logiciel que tu veux créer.
+. 2 installer un "plugin" interne de ChatGPT qui s'appelle... "GitHub". Ce n'est PAS une extension de navigateur. L'interface de ChatGPT est conçue pour avoir des extensions. C'est évidemment gratuit.
+. 3 avoir peut être un petit abonnement payant à ChatGPT pour ne pas être limité à genre 3 tentatives de compils par jour.
+
+Avec ces 3 requis : tu va obtenir des .ZIP à télécharger, qui contiennent directement le petit .EXE qui se lance directement depuis Windows !
+
+( ASTUCE : T'es pas obligé tout de suite de donner un nom explicite du style "arme atomique maison pour éliminer Poutine" ou "GTA 6 Craft Open Source". T'appelles ton logiciel "Trucmuche" tu verras si le FBI sonne à ta porte. )
+...
