@@ -1,3 +1,10 @@
+// ============================================================
+// MIDIPIXELS
+// Créé en vibe-coding par Claude-Samuel Lévine fin novembre 2026
+// à Étretat - www.cslevine.com
+// IA génératrice des sources C++ : ChatGPT ("Lia")
+// ============================================================
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <objidl.h>
@@ -14,7 +21,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("v0.304");
+static const TCHAR VERSION[] = _T("v0.305");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -111,6 +118,7 @@ static const int MINI_TRANSPORT_HEIGHT=54;
 static const int MINI_SCREEN_X=168,MINI_SCREEN_W=130,MINI_SCREEN_H=34;
 static bool g_startFullscreen=false;
 static COLORREF g_windowButtonsColor=RGB(49,46,72);
+static bool g_windowButtonsHover=false;
 static RECT g_windowedRect={};
 static LONG_PTR g_windowedStyle=0;
 
@@ -692,7 +700,9 @@ static int ProgressWidth(int clientWidth) {
 static void InvalidateInfoBlock(HWND hwnd) {
     RECT client; GetClientRect(hwnd,&client);
     int barY=client.bottom-77;
-    RECT info={20,barY-60,client.right-20,barY-18};
+    int infoStep=g_musicdataFontSize+2;
+    int infoTop=barY-8-4*infoStep;
+    RECT info={20,infoTop,client.right-20,barY-4};
     if(info.bottom<info.top)info.bottom=info.top;
     InvalidateRect(hwnd,&info,FALSE);
 }
@@ -917,6 +927,18 @@ static void TxtCenteredMono(HDC dc,RECT r,LPCTSTR text,COLORREF color,int size,i
     SelectObject(dc,old);
     DeleteObject(f);
 }
+static void TxtFixed(HDC dc,int x,int y,LPCTSTR s,COLORREF color,int size=13,int weight=FW_NORMAL) {
+    SetBkMode(dc,TRANSPARENT);
+    SetTextColor(dc,color);
+    HFONT f=CreateFont(size,0,0,0,weight,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
+        OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,
+        FIXED_PITCH|FF_MODERN,_T("Courier New"));
+    HFONT old=(HFONT)SelectObject(dc,f);
+    TextOut(dc,x,y,s,lstrlen(s));
+    SelectObject(dc,old);
+    DeleteObject(f);
+}
+
 static void TxtClipped(HDC dc, RECT r, LPCTSTR s, COLORREF color, int size = 9, int weight = FW_NORMAL) {
     SetBkMode(dc, TRANSPARENT);
     SetTextColor(dc, color);
@@ -1162,14 +1184,18 @@ static void Paint(HWND hwnd) {
     if (g_loaded) {
         TCHAR metaText[128];
         int barY = cr.bottom - 77;
-        _stprintf_s(metaText, _T("%u tracks   /   %u ticks per quarter"), (unsigned int)g_tracks.size(), (unsigned int)g_division);
-        Txt(dc, 24, barY - 55, metaText, RGB(205, 210, 225), g_musicdataFontSize);
+        int infoStep=g_musicdataFontSize+2;
+        int infoTop=barY-8-4*infoStep;
+        _stprintf_s(metaText, _T("TRACKS : %4u"), (unsigned int)g_tracks.size());
+        TxtFixed(dc, 24, infoTop, metaText, RGB(205, 210, 225), g_musicdataFontSize);
+        _stprintf_s(metaText, _T("PPQ    : %4u"), (unsigned int)g_division);
+        TxtFixed(dc, 24, infoTop+infoStep, metaText, RGB(205, 210, 225), g_musicdataFontSize);
         double bpm = g_currentTempo ? 60000000.0 / (double)g_currentTempo : 120.0;
-        _stprintf_s(metaText, _T("TEMPO  %.1f BPM"), bpm);
-        Txt(dc, 24, barY - 41, metaText, RGB(205, 210, 225), g_musicdataFontSize);
+        _stprintf_s(metaText, _T("TEMPO  : %6.1f"), bpm);
+        TxtFixed(dc, 24, infoTop+2*infoStep, metaText, RGB(205, 210, 225), g_musicdataFontSize);
         unsigned int denominator = 1u << g_currentTimeDenominatorPower;
-        _stprintf_s(metaText, _T("TIME SIGNATURE  %u/%u"), (unsigned int)g_currentTimeNumerator, denominator);
-        Txt(dc, 24, barY - 27, metaText, RGB(205, 210, 225), g_musicdataFontSize);
+        _stprintf_s(metaText, _T("METER  : %u/%u"), (unsigned int)g_currentTimeNumerator, denominator);
+        TxtFixed(dc, 24, infoTop+3*infoStep, metaText, RGB(205, 210, 225), g_musicdataFontSize);
     }
     int rows=DisplayRowCount();
     if(!g_trackMode){for(int ch=0;ch<MIDI_CHANNELS;++ch){int y=DisplayRowY(ch);TCHAR p[16]={};if(ch==9)lstrcpyn(p,_T("RYTHME"),16);else _stprintf_s(p,_T("%03d"),g_program[ch]+1);Txt(dc,72,y-5,g_loaded?p:_T("---"),RGB(160,170,195),10);
@@ -1195,12 +1221,22 @@ static void Paint(HWND hwnd) {
     int progressTextY = barY + (g_progressHeight - progressFontSize) / 2;
     Txt(dc,cr.right-timeSize.cx-14,progressTextY,timeText,RGB(235,235,242),progressFontSize);
     Txt(dc,20,progressTextY,g_fileName,RGB(235,235,242),progressFontSize);
-    const int buttonY=4,buttonW=21,buttonH=19,buttonGap=3;
-    const int closeX=cr.right-27,maxX=closeX-buttonW-buttonGap,minX=maxX-buttonW-buttonGap,miniX=minX-buttonW-buttonGap;
-    RECT button={minX,buttonY,minX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("_"),RGB(225,225,232),12,FW_BOLD);
-    button={maxX,buttonY,maxX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("□"),RGB(225,225,232),11,FW_NORMAL);
-    button={miniX,buttonY,miniX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("M"),RGB(225,225,232),11,FW_BOLD);
-    button={closeX,buttonY,closeX+buttonW,buttonY+buttonH};FillRectColor(dc,button,g_windowButtonsColor);DrawWindowButtonFrame(dc,button,g_uiLines);TxtCenteredMono(dc,button,_T("X"),RGB(225,225,232),11,FW_BOLD);
+    if(g_windowButtonsHover) {
+        const int buttonY=4,buttonW=21,buttonH=19,buttonGap=3;
+        const int closeX=cr.right-27,maxX=closeX-buttonW-buttonGap,minX=maxX-buttonW-buttonGap,miniX=minX-buttonW-buttonGap;
+        RECT band={miniX-5,0,cr.right,buttonY+buttonH+4};
+        HBRUSH bandBrush=CreateSolidBrush(g_windowButtonsColor);
+        FillRect(dc,&band,bandBrush);
+        DeleteObject(bandBrush);
+        RECT button={minX,buttonY,minX+buttonW,buttonY+buttonH};
+        TxtCenteredMono(dc,button,_T("_"),RGB(225,225,232),12,FW_BOLD);
+        button={maxX,buttonY,maxX+buttonW,buttonY+buttonH};
+        TxtCenteredMono(dc,button,_T("□"),RGB(225,225,232),11,FW_NORMAL);
+        button={miniX,buttonY,miniX+buttonW,buttonY+buttonH};
+        TxtCenteredMono(dc,button,_T("M"),RGB(225,225,232),11,FW_BOLD);
+        button={closeX,buttonY,closeX+buttonW,buttonY+buttonH};
+        TxtCenteredMono(dc,button,_T("X"),RGB(225,225,232),11,FW_BOLD);
+    }
     EndPaint(hwnd, &ps);
 }
 static void FillRectColor(HDC dc,RECT r,COLORREF color);
@@ -1267,7 +1303,7 @@ static void LoadAuthorsGif(HWND hwnd) {
  g_gifFrameCount=g_authorsGif->GetFrameCount(&g_gifFrameDimension);if(g_gifFrameCount>1)SetTimer(hwnd,2,100,NULL);
 }
 static void ShowSideContent(HWND owner,int content) {
- if(!g_infoWnd){RECT wr;GetWindowRect(owner,&wr);int ix=wr.right+1;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth-1;
+ if(!g_infoWnd){RECT wr;GetWindowRect(owner,&wr);int ix=wr.right;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth;
   g_infoWnd=CreateWindowEx(WS_EX_TOOLWINDOW,_T("MIDI_PIXEL_INFO_WINDOW"),_T(""),WS_POPUP|WS_BORDER,ix,wr.top,g_infoWindowWidth,wr.bottom-wr.top,owner,NULL,(HINSTANCE)GetWindowLongPtr(owner,GWLP_HINSTANCE),NULL);}
  if(!g_infoWnd)return;CloseAuthorsGif();g_infoContent=content;g_infoScroll=0;
  if(content==1)LoadSideText(_T("MIDIPIXELS.TXT"));else if(content==2)LoadSideText(_T("history.TXT"));else if(content==3){LoadAuthorsGif(g_infoWnd);LoadSideText(_T("auteurs.txt"));}
@@ -1300,7 +1336,7 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     case WM_PAINT: {
         PAINTSTRUCT ps; HDC dc=BeginPaint(hwnd,&ps); RECT r; GetClientRect(hwnd,&r);
         FillRectColor(dc,r,g_uiBackground);
-        const TCHAR* panelTitle=g_infoContent==1?_T("MIDIPIXELS"):g_infoContent==2?_T("HISTORY"):g_infoContent==3?_T("AUTHORS"):_T("MIDI FILE INFORMATION");
+        const TCHAR* panelTitle=g_infoContent==1?_T("MIDIPIXELS"):g_infoContent==2?_T("HISTORY"):g_infoContent==3?_T("AUTHORS"):_T("MIDI INFO");
         Txt(dc,14,10,panelTitle,RGB(235,235,242),12,FW_SEMIBOLD);
         Txt(dc,r.right-25,8,_T("X"),RGB(235,235,242),14,FW_BOLD);
         HPEN pen=CreatePen(PS_SOLID,1,g_uiLines); HPEN old=(HPEN)SelectObject(dc,pen);
@@ -1319,14 +1355,6 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
         }
         if(g_infoContent==1||g_infoContent==2){if(g_infoText.empty())Txt(dc,14,48,_T("Text file not found beside the EXE."),RGB(205,210,225),10);else{RECT tr={14,43-g_infoScroll,r.right-14,r.bottom-12};SetTextColor(dc,RGB(225,225,232));SetBkMode(dc,TRANSPARENT);DrawText(dc,g_infoText.data(),-1,&tr,DT_LEFT|DT_TOP|DT_WORDBREAK|DT_NOPREFIX);}EndPaint(hwnd,&ps);return 0;}
         int y=43;
-        Txt(dc,14,y-g_infoScroll,_T("FILE"),RGB(160,170,195),9,FW_BOLD); y+=18;
-        TCHAR file[512]={};
-#ifdef UNICODE
-        MultiByteToWideChar(CP_ACP,0,g_fileName,-1,file,512);
-#else
-        lstrcpynA(file,g_fileName,512);
-#endif
-        TxtClipped(dc,RECT{14,y-g_infoScroll,r.right-14,y-g_infoScroll+18},file,RGB(235,235,242),11); y+=28;
         const char* labels[3]={"Text","Lyric","Cue"};
         const TCHAR* headings[3]={_T("0x01  TEXT EVENT"),_T("0x05  LYRICS"),_T("0x07  CUE POINT")};
         for(int section=0;section<3;++section) {
@@ -1364,13 +1392,34 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
         DestroyBackBuffer(); InvalidateRect(hwnd,NULL,FALSE);
         if(g_infoWnd) {
             if(IsIconic(hwnd))ShowWindow(g_infoWnd,SW_HIDE);
-            else {RECT wr;GetWindowRect(hwnd,&wr);int ix=wr.right+1;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth-1;SetWindowPos(g_infoWnd,NULL,ix,wr.top,g_infoWindowWidth,wr.bottom-wr.top,SWP_NOZORDER|SWP_NOACTIVATE);}
+            else {RECT wr;GetWindowRect(hwnd,&wr);int ix=wr.right;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth;SetWindowPos(g_infoWnd,NULL,ix,wr.top,g_infoWindowWidth,wr.bottom-wr.top,SWP_NOZORDER|SWP_NOACTIVATE);}
         }
         return 0;
     case WM_MOVE:
-        if(g_infoWnd && IsWindowVisible(g_infoWnd)){RECT wr;GetWindowRect(hwnd,&wr);int ix=wr.right+1;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth-1;SetWindowPos(g_infoWnd,NULL,ix,wr.top,g_infoWindowWidth,wr.bottom-wr.top,SWP_NOZORDER|SWP_NOACTIVATE);}
+        if(g_infoWnd && IsWindowVisible(g_infoWnd)){RECT wr;GetWindowRect(hwnd,&wr);int ix=wr.right;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth;SetWindowPos(g_infoWnd,NULL,ix,wr.top,g_infoWindowWidth,wr.bottom-wr.top,SWP_NOZORDER|SWP_NOACTIVATE);}
         return 0;
     case WM_TIMER: if(wp==1)AdvancePlayback(hwnd); return 0;
+    case WM_MOUSEMOVE: {
+        TRACKMOUSEEVENT tme={sizeof(tme),TME_LEAVE,hwnd,0};
+        TrackMouseEvent(&tme);
+        RECT client;GetClientRect(hwnd,&client);
+        bool over=(!g_miniMode && HIWORD(lp)<27 && LOWORD(lp)>=client.right-120);
+        if(over!=g_windowButtonsHover) {
+            g_windowButtonsHover=over;
+            RECT topStrip={client.right-125,0,client.right,30};
+            InvalidateRect(hwnd,&topStrip,FALSE);
+        }
+        return 0;
+    }
+    case WM_MOUSELEAVE: {
+        if(g_windowButtonsHover) {
+            g_windowButtonsHover=false;
+            RECT client;GetClientRect(hwnd,&client);
+            RECT topStrip={client.right-125,0,client.right,30};
+            InvalidateRect(hwnd,&topStrip,FALSE);
+        }
+        return 0;
+    }
     case WM_DROPFILES: {
         HDROP drop=(HDROP)wp; TCHAR path[MAX_PATH]={};
         if(DragQueryFile(drop,0,path,MAX_PATH))OpenMidiPath(hwnd,path,true);
