@@ -1239,7 +1239,7 @@ static void Paint(HWND hwnd) {
         TxtCenteredMono(dc,button,_T("_"),RGB(225,225,232),12,FW_BOLD);
         button={maxX,buttonY,maxX+buttonW,buttonY+buttonH};
         {
-            const wchar_t maximizeGlyph[] = L"\\xE922";
+            const wchar_t maximizeGlyph[] = L"\xE922";
             SetBkMode(dc,TRANSPARENT);SetTextColor(dc,RGB(225,225,232));
             HFONT glyphFont=CreateFontW(13,0,0,0,FW_NORMAL,FALSE,FALSE,FALSE,DEFAULT_CHARSET,
                 OUT_DEFAULT_PRECIS,CLIP_DEFAULT_PRECIS,CLEARTYPE_QUALITY,DEFAULT_PITCH|FF_DONTCARE,
