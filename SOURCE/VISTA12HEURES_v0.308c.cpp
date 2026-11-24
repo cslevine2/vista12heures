@@ -1423,9 +1423,18 @@ static void ApplyAllSettings(HWND hwnd) {
     SaveSettingsPage(hwnd);
     g_useMidiMapper=SendMessage(g_mapperCheck,BM_GETCHECK,0,0)==BST_CHECKED;
     if(!g_useMidiMapper){int row=(int)SendMessage(g_outputCombo,CB_GETCURSEL,0,0);if(row>=0)g_selectedMidiDevice=(UINT)SendMessage(g_outputCombo,CB_GETITEMDATA,row,0);}
+    WriteSettingsValues(g_settingsDraft);
     SaveMidiOutputSettings();OpenMidiOutput(hwnd);
     LoadColorPalette();LoadInterfaceColors();LoadInstrumentDisplaySettings();LoadKeyboardSettings();
     DestroyBackBuffer();HWND owner=GetParent(hwnd);if(owner)InvalidateRect(owner,NULL,FALSE);
+}
+static void CancelSettings(HWND hwnd) {
+    WriteSettingsValues(g_settingsOriginal);
+    g_useMidiMapper=g_settingsOriginalUseMapper;g_selectedMidiDevice=g_settingsOriginalDevice;
+    SaveMidiOutputSettings();OpenMidiOutput(hwnd);
+    LoadColorPalette();LoadInterfaceColors();LoadInstrumentDisplaySettings();LoadKeyboardSettings();
+    DestroyBackBuffer();HWND owner=GetParent(hwnd);if(owner)InvalidateRect(owner,NULL,FALSE);
+    ShowWindow(hwnd,SW_HIDE);
 }
 static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     switch(msg) {
