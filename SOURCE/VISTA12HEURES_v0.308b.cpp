@@ -1440,7 +1440,7 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
     }
     case WM_MOUSEWHEEL: {
         POINT pt={GET_X_LPARAM(lp),GET_Y_LPARAM(lp)};ScreenToClient(hwnd,&pt);
-        if(pt.x>=145&&pt.x<555&&g_settingsPage!=0){int pos=g_settingsScroll-(GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA)*54;if(pos<0)pos=0;if(pos>g_settingsMaxScroll)pos=g_settingsMaxScroll;int delta=g_settingsScroll-pos;g_settingsScroll=pos;for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+200;++id){HWND c=GetDlgItem(hwnd,id);if(c){RECT r;GetWindowRect(c,&r);MapWindowPoints(NULL,hwnd,(POINT*)&r,2);SetWindowPos(c,NULL,r.left,r.top+delta,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);}}SCROLLINFO si={sizeof(si),SIF_POS};si.nPos=pos;SetScrollInfo(g_settingsScrollBar,SB_CTL,&si,TRUE);return 0;}
+        if(pt.x>=145&&pt.x<555&&g_settingsPage!=0){int pos=g_settingsScroll-(GET_WHEEL_DELTA_WPARAM(wp)/WHEEL_DELTA)*54;if(pos<0)pos=0;if(pos>g_settingsMaxScroll)pos=g_settingsMaxScroll;int delta=g_settingsScroll-pos;g_settingsScroll=pos;for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+200;++id){HWND c=GetDlgItem(hwnd,id);if(c){RECT r;GetWindowRect(c,&r);MapWindowPoints(NULL,hwnd,(POINT*)&r,2);SetWindowPos(c,NULL,r.left,r.top+delta,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);}}UpdateSettingsControlVisibility(hwnd);SCROLLINFO si={sizeof(si),SIF_POS};si.nPos=pos;SetScrollInfo(g_settingsScrollBar,SB_CTL,&si,TRUE);return 0;}
         break;
     }
     case WM_COMMAND: {
