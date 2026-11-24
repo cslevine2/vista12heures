@@ -1443,6 +1443,8 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
         INITCOMMONCONTROLSEX icc={sizeof(icc),ICC_TREEVIEW_CLASSES};InitCommonControlsEx(&icc);
         g_settingsTree=CreateWindowEx(WS_EX_CLIENTEDGE,WC_TREEVIEW,_T(""),WS_CHILD|WS_VISIBLE|TVS_HASLINES|TVS_LINESATROOT|TVS_HASBUTTONS|TVS_SHOWSELALWAYS,10,18,130,365,hwnd,(HMENU)110,NULL,NULL);
         if(g_settingsFont)SendMessage(g_settingsTree,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);
+        SendMessage(g_settingsTree,TVM_SETBKCOLOR,0,(LPARAM)GetSysColor(COLOR_3DFACE));
+        SendMessage(g_settingsTree,TVM_SETTEXTCOLOR,0,(LPARAM)GetSysColor(COLOR_WINDOWTEXT));
         for(int i=0;i<7;++i) {
             TVINSERTSTRUCT t={};t.hParent=TVI_ROOT;t.hInsertAfter=TVI_LAST;t.item.mask=TVIF_TEXT|TVIF_PARAM;
             t.item.pszText=(LPTSTR)g_settingsPageNames[i];t.item.lParam=i;
@@ -1504,7 +1506,7 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
                 if(edit)GetWindowText(edit,value,128);
                 int r=128,g=128,b=128;if(_stscanf_s(value,_T("%d , %d , %d"),&r,&g,&b)==3)color=RGB(r,g,b);
             }
-            FillRect(dis->hDC,&dis->rcItem,(HBRUSH)GetStockObject(BLACK_BRUSH));
+            FillRect(dis->hDC,&dis->rcItem,GetSysColorBrush(COLOR_3DFACE));
             RECT sample=dis->rcItem;InflateRect(&sample,-4,-4);
             HBRUSH brush=CreateSolidBrush(color);FillRect(dis->hDC,&sample,brush);DeleteObject(brush);
             FrameRect(dis->hDC,&sample,(HBRUSH)GetStockObject(GRAY_BRUSH));
@@ -1512,6 +1514,15 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
             return TRUE;
         }
         break;
+    }
+    case WM_CTLCOLORSTATIC: {
+        HDC dc=(HDC)wp;SetTextColor(dc,GetSysColor(COLOR_WINDOWTEXT));SetBkColor(dc,GetSysColor(COLOR_3DFACE));SetBkMode(dc,TRANSPARENT);return (LRESULT)GetSysColorBrush(COLOR_3DFACE);
+    }
+    case WM_CTLCOLORBTN: {
+        HDC dc=(HDC)wp;SetTextColor(dc,GetSysColor(COLOR_BTNTEXT));SetBkColor(dc,GetSysColor(COLOR_3DFACE));return (LRESULT)GetSysColorBrush(COLOR_3DFACE);
+    }
+    case WM_CTLCOLOREDIT: {
+        HDC dc=(HDC)wp;SetTextColor(dc,GetSysColor(COLOR_WINDOWTEXT));SetBkColor(dc,GetSysColor(COLOR_WINDOW));return (LRESULT)GetSysColorBrush(COLOR_WINDOW);
     }
     case WM_ERASEBKGND: {
         HDC dc=(HDC)wp;RECT r;GetClientRect(hwnd,&r);FillRect(dc,&r,GetSysColorBrush(COLOR_3DFACE));return 1;
@@ -1524,7 +1535,7 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
 static void ShowMidiOutputSettings(HWND owner) {
     if(g_settingsWnd && IsWindowVisible(g_settingsWnd)){CancelSettings(g_settingsWnd);return;}
     if(!g_settingsWnd)g_settingsWnd=CreateWindowEx(WS_EX_TOOLWINDOW,_T("MIDI_PIXEL_SETTINGS_WINDOW"),_T("MIDI PIXEL - Settings"),WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_BORDER,CW_USEDEFAULT,CW_USEDEFAULT,570,470,owner,NULL,(HINSTANCE)GetWindowLongPtr(owner,GWLP_HINSTANCE),NULL);
-    if(g_settingsWnd){BeginSettingsTransaction();RECT wr;GetWindowRect(owner,&wr);SetWindowPos(g_settingsWnd,HWND_TOP,wr.left+25,wr.top+25,570,470,SWP_SHOWWINDOW);SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();EnableWindow(g_outputCombo,!g_useMidiMapper);BuildSettingsPage(g_settingsWnd,g_settingsPage);ShowWindow(g_settingsWnd,SW_SHOW);UpdateWindow(g_settingsWnd);}
+    if(g_settingsWnd){BeginSettingsTransaction();RECT wr;GetWindowRect(owner,&wr);SetWindowPos(g_settingsWnd,HWND_TOP,wr.left+25,wr.top+25,570,470,SWP_SHOWWINDOW);SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();EnableWindow(g_outputCombo,!g_useMidiMapper);BuildSettingsPage(g_settingsWnd,g_settingsPage);ShowWindow(g_settingsWnd,SW_SHOW);SetFocus(g_settingsTree);UpdateWindow(g_settingsWnd);}
 }
 
 static void BuildSideFilePath(const TCHAR* fileName,TCHAR* path,DWORD size) {
