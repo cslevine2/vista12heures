@@ -1522,7 +1522,7 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
     return DefWindowProc(hwnd,msg,wp,lp);
 }
 static void ShowMidiOutputSettings(HWND owner) {
-    if(g_settingsWnd && IsWindowVisible(g_settingsWnd)){ShowWindow(g_settingsWnd,SW_HIDE);return;}
+    if(g_settingsWnd && IsWindowVisible(g_settingsWnd)){CancelSettings(g_settingsWnd);return;}
     if(!g_settingsWnd)g_settingsWnd=CreateWindowEx(WS_EX_TOOLWINDOW,_T("MIDI_PIXEL_SETTINGS_WINDOW"),_T("MIDI PIXEL - Settings"),WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_BORDER,CW_USEDEFAULT,CW_USEDEFAULT,570,470,owner,NULL,(HINSTANCE)GetWindowLongPtr(owner,GWLP_HINSTANCE),NULL);
     if(g_settingsWnd){BeginSettingsTransaction();RECT wr;GetWindowRect(owner,&wr);SetWindowPos(g_settingsWnd,HWND_TOP,wr.left+25,wr.top+25,570,470,SWP_SHOWWINDOW);SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();EnableWindow(g_outputCombo,!g_useMidiMapper);BuildSettingsPage(g_settingsWnd,g_settingsPage);ShowWindow(g_settingsWnd,SW_SHOW);UpdateWindow(g_settingsWnd);}
 }
