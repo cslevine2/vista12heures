@@ -1372,7 +1372,7 @@ static void ChooseSettingColor(HWND hwnd,int index) {
     TCHAR value[128]={};GetWindowText(edit,value,128);
     int r=0,g=0,b=0;_stscanf_s(value,_T("%d , %d , %d"),&r,&g,&b);
     COLORREF custom[16]={};CHOOSECOLOR cc={sizeof(cc)};cc.hwndOwner=hwnd;cc.rgbResult=RGB(r,g,b);cc.lpCustColors=custom;cc.Flags=CC_FULLOPEN|CC_RGBINIT;
-    if(ChooseColor(&cc)){_stprintf_s(value,_T("%d, %d, %d"),GetRValue(cc.rgbResult),GetGValue(cc.rgbResult),GetBValue(cc.rgbResult));SetWindowText(edit,value);}
+    if(ChooseColor(&cc)){_stprintf_s(value,_T("%d, %d, %d"),GetRValue(cc.rgbResult),GetGValue(cc.rgbResult),GetBValue(cc.rgbResult));SetWindowText(edit,value);HWND swatch=GetDlgItem(hwnd,SETTINGS_FIELD_BASE+50+index);if(swatch)InvalidateRect(swatch,NULL,TRUE);}
 }
 static void ApplyAllSettings(HWND hwnd) {
     SaveSettingsPage(hwnd);
