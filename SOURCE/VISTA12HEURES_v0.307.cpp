@@ -1365,7 +1365,8 @@ static void LoadAuthorsGif(HWND hwnd) {
  for(UINT i=0;i<n;++i)if(ids[i]==Gdiplus::FrameDimensionTime){g_gifFrameDimension=ids[i];break;}
  g_gifFrameCount=g_authorsGif->GetFrameCount(&g_gifFrameDimension);if(g_gifFrameCount>1)SetTimer(hwnd,2,100,NULL);
 }
-$1if(g_infoWnd && IsWindowVisible(g_infoWnd) && g_infoContent==content){CloseAuthorsGif();ShowWindow(g_infoWnd,SW_HIDE);return;}
+static void ShowSideContent(HWND owner,int content) {
+  if(g_infoWnd && IsWindowVisible(g_infoWnd) && g_infoContent==content){CloseAuthorsGif();ShowWindow(g_infoWnd,SW_HIDE);return;}
   if(!g_infoWnd){RECT wr;GetWindowRect(owner,&wr);int ix=wr.right;if(ix+g_infoWindowWidth>GetSystemMetrics(SM_CXSCREEN))ix=wr.left-g_infoWindowWidth;
   g_infoWnd=CreateWindowEx(WS_EX_TOOLWINDOW,_T("MIDI_PIXEL_INFO_WINDOW"),_T(""),WS_POPUP|WS_BORDER,ix,wr.top,g_infoWindowWidth,wr.bottom-wr.top,owner,NULL,(HINSTANCE)GetWindowLongPtr(owner,GWLP_HINSTANCE),NULL);}
  if(!g_infoWnd)return;CloseAuthorsGif();g_infoContent=content;g_infoScroll=0;
