@@ -12,6 +12,7 @@
 #include <mmsystem.h>
 #include <commdlg.h>
 #include <commctrl.h>
+#include <windowsx.h>
 #include <shellapi.h>
 #include <tchar.h>
 #include <cstdio>
@@ -1339,6 +1340,13 @@ static void SettingsCreateLabel(HWND hwnd,const TCHAR* text,int x,int y,int w,in
     HWND c=CreateWindowEx(0,_T("STATIC"),text,WS_CHILD|WS_VISIBLE,x,y,w,h,hwnd,(HMENU)(INT_PTR)id,NULL,NULL);
     if(g_settingsFont)SendMessage(c,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);
 }
+static void UpdateSettingsControlVisibility(HWND hwnd) {
+    for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+200;++id) {
+        HWND c=GetDlgItem(hwnd,id);if(!c)continue;
+        RECT r;GetWindowRect(c,&r);MapWindowPoints(NULL,hwnd,(POINT*)&r,2);
+        ShowWindow(c,(r.bottom>18&&r.top<383)?SW_SHOWNA:SW_HIDE);
+    }
+}
 static void BuildSettingsPage(HWND hwnd,int page) {
     g_settingsPage=page;g_settingsScroll=0;
     for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+200;++id){HWND c=GetDlgItem(hwnd,id);if(c)DestroyWindow(c);}
@@ -1360,6 +1368,7 @@ static void BuildSettingsPage(HWND hwnd,int page) {
             if(g_settingsFont)SendMessage(swatch,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);
         }
     }
+    UpdateSettingsControlVisibility(hwnd);
     InvalidateRect(hwnd,NULL,TRUE);
 }
 static void SaveSettingsPage(HWND hwnd) {
@@ -1424,7 +1433,7 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
             switch(LOWORD(wp)){case SB_LINEUP:pos-=27;break;case SB_LINEDOWN:pos+=27;break;case SB_PAGEUP:pos-=270;break;case SB_PAGEDOWN:pos+=270;break;case SB_THUMBTRACK:case SB_THUMBPOSITION:pos=si.nTrackPos;break;case SB_TOP:pos=0;break;case SB_BOTTOM:pos=g_settingsMaxScroll;break;}
             if(pos<0)pos=0;if(pos>g_settingsMaxScroll)pos=g_settingsMaxScroll;
             int delta=g_settingsScroll-pos;g_settingsScroll=pos;
-            for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+200;++id){HWND c=GetDlgItem(hwnd,id);if(c){RECT r;GetWindowRect(c,&r);MapWindowPoints(NULL,hwnd,(POINT*)&r,2);SetWindowPos(c,NULL,r.left,r.top+delta,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);}}
+            for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+200;++id){HWND c=GetDlgItem(hwnd,id);if(c){RECT r;GetWindowRect(c,&r);MapWindowPoints(NULL,hwnd,(POINT*)&r,2);SetWindowPos(c,NULL,r.left,r.top+delta,0,0,SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE);}}UpdateSettingsControlVisibility(hwnd);
             SCROLLINFO out={sizeof(out),SIF_POS};out.nPos=pos;SetScrollInfo(g_settingsScrollBar,SB_CTL,&out,TRUE);return 0;
         }
         break;
