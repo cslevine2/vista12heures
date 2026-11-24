@@ -1207,7 +1207,9 @@ static void Paint(HWND hwnd) {
         _stprintf_s(metaText, _T("TEMPO  : %6.0f"), bpm);
         TxtFixed(dc, 24, infoTop+2*infoStep, metaText, RGB(205, 210, 225), g_musicdataFontSize);
         unsigned int denominator = 1u << g_currentTimeDenominatorPower;
-        TCHAR meterValue[32];\n        _stprintf_s(meterValue, _T("%u/%u"), (unsigned int)g_currentTimeNumerator, denominator);\n        _stprintf_s(metaText, _T("METER  : %13s"), meterValue);
+        TCHAR meterValue[32];
+        _stprintf_s(meterValue, _T("%u/%u"), (unsigned int)g_currentTimeNumerator, denominator);
+        _stprintf_s(metaText, _T("METER  : %13s"), meterValue);
         TxtFixed(dc, 24, infoTop+3*infoStep, metaText, RGB(205, 210, 225), g_musicdataFontSize);
     }
     int rows=DisplayRowCount();
