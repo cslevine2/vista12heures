@@ -1453,9 +1453,10 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
         g_outputCombo=CreateWindowEx(WS_EX_CLIENTEDGE,_T("COMBOBOX"),_T(""),WS_CHILD|WS_VSCROLL|CBS_DROPDOWNLIST,305,55,221,160,hwnd,(HMENU)102,NULL,NULL);
         HWND midiLabel=CreateWindowEx(0,_T("STATIC"),_T("Output device"),WS_CHILD,305,32,200,20,hwnd,(HMENU)105,NULL,NULL);
         g_settingsScrollBar=CreateWindowEx(0,_T("SCROLLBAR"),_T(""),WS_CHILD|SBS_VERT,535,18,16,365,hwnd,(HMENU)106,NULL,NULL);
-        HWND apply=CreateWindowEx(0,_T("BUTTON"),_T("Apply"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,355,393,78,27,hwnd,(HMENU)103,NULL,NULL);
-        HWND close=CreateWindowEx(0,_T("BUTTON"),_T("Close"),WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,441,393,78,27,hwnd,(HMENU)104,NULL,NULL);
-        if(g_settingsFont){SendMessage(midiLabel,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(g_mapperCheck,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(g_outputCombo,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(apply,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(close,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);}
+        HWND ok=CreateWindowEx(0,_T("BUTTON"),_T("OK"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,300,393,68,27,hwnd,(HMENU)103,NULL,NULL);
+        HWND cancel=CreateWindowEx(0,_T("BUTTON"),_T("Cancel"),WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,375,393,68,27,hwnd,(HMENU)104,NULL,NULL);
+        HWND apply=CreateWindowEx(0,_T("BUTTON"),_T("Apply"),WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,450,393,68,27,hwnd,(HMENU)107,NULL,NULL);
+        if(g_settingsFont){SendMessage(midiLabel,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(g_mapperCheck,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(g_outputCombo,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(ok,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(cancel,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(apply,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);}
         SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();
         BuildSettingsPage(hwnd,0);
         return 0;
@@ -1487,9 +1488,10 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
     case WM_COMMAND: {
         int id=LOWORD(wp);
         if(id>=SETTINGS_FIELD_BASE+50&&id<SETTINGS_FIELD_BASE+100){ChooseSettingColor(hwnd,id-SETTINGS_FIELD_BASE-50);return 0;}
-        if(id==101&&HIWORD(wp)==BN_CLICKED){g_useMidiMapper=SendMessage(g_mapperCheck,BM_GETCHECK,0,0)==BST_CHECKED;EnableWindow(g_outputCombo,!g_useMidiMapper);return 0;}
+        if(id==101&&HIWORD(wp)==BN_CLICKED){EnableWindow(g_outputCombo,SendMessage(g_mapperCheck,BM_GETCHECK,0,0)!=BST_CHECKED);return 0;}
         if(id==103){ApplyAllSettings(hwnd);ShowWindow(hwnd,SW_HIDE);return 0;}
-        if(id==104){SaveSettingsPage(hwnd);ShowWindow(hwnd,SW_HIDE);return 0;}
+        if(id==104){CancelSettings(hwnd);return 0;}
+        if(id==107){ApplyAllSettings(hwnd);return 0;}
         break;
     }
     case WM_DRAWITEM: {
@@ -1511,17 +1513,10 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
         }
         break;
     }
-    case WM_CTLCOLORSTATIC:case WM_CTLCOLORBTN:case WM_CTLCOLOREDIT: {
-        HDC dc=(HDC)wp;SetBkColor(dc,g_uiBackground);SetTextColor(dc,RGB(235,235,242));
-        static HBRUSH brush=NULL;if(!brush)brush=CreateSolidBrush(g_uiBackground);return (LRESULT)brush;
-    }
     case WM_ERASEBKGND: {
-        HDC dc=(HDC)wp;RECT r;GetClientRect(hwnd,&r);FillRectColor(dc,r,g_uiBackground);
-        RECT side={0,0,134,r.bottom};HBRUSH b=CreateSolidBrush(RGB(28,29,39));FillRect(dc,&side,b);DeleteObject(b);
-        HPEN p=CreatePen(PS_SOLID,1,g_uiLines);HPEN old=(HPEN)SelectObject(dc,p);MoveToEx(dc,133,0,NULL);LineTo(dc,133,r.bottom);SelectObject(dc,old);DeleteObject(p);
-        return 1;
+        HDC dc=(HDC)wp;RECT r;GetClientRect(hwnd,&r);FillRect(dc,&r,GetSysColorBrush(COLOR_3DFACE));return 1;
     }
-    case WM_CLOSE:SaveSettingsPage(hwnd);ShowWindow(hwnd,SW_HIDE);return 0;
+    case WM_CLOSE:CancelSettings(hwnd);return 0;
     case WM_DESTROY:if(g_settingsFont){DeleteObject(g_settingsFont);g_settingsFont=NULL;}return 0;
     }
     return DefWindowProc(hwnd,msg,wp,lp);
@@ -1529,7 +1524,7 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
 static void ShowMidiOutputSettings(HWND owner) {
     if(g_settingsWnd && IsWindowVisible(g_settingsWnd)){ShowWindow(g_settingsWnd,SW_HIDE);return;}
     if(!g_settingsWnd)g_settingsWnd=CreateWindowEx(WS_EX_TOOLWINDOW,_T("MIDI_PIXEL_SETTINGS_WINDOW"),_T("MIDI PIXEL - Settings"),WS_POPUP|WS_CAPTION|WS_SYSMENU|WS_BORDER,CW_USEDEFAULT,CW_USEDEFAULT,570,470,owner,NULL,(HINSTANCE)GetWindowLongPtr(owner,GWLP_HINSTANCE),NULL);
-    if(g_settingsWnd){RECT wr;GetWindowRect(owner,&wr);SetWindowPos(g_settingsWnd,HWND_TOP,wr.left+25,wr.top+25,570,470,SWP_SHOWWINDOW);SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();BuildSettingsPage(g_settingsWnd,g_settingsPage);ShowWindow(g_settingsWnd,SW_SHOW);UpdateWindow(g_settingsWnd);}
+    if(g_settingsWnd){BeginSettingsTransaction();RECT wr;GetWindowRect(owner,&wr);SetWindowPos(g_settingsWnd,HWND_TOP,wr.left+25,wr.top+25,570,470,SWP_SHOWWINDOW);SendMessage(g_mapperCheck,BM_SETCHECK,g_useMidiMapper?BST_CHECKED:BST_UNCHECKED,0);RefreshOutputCombo();EnableWindow(g_outputCombo,!g_useMidiMapper);BuildSettingsPage(g_settingsWnd,g_settingsPage);ShowWindow(g_settingsWnd,SW_SHOW);UpdateWindow(g_settingsWnd);}
 }
 
 static void BuildSideFilePath(const TCHAR* fileName,TCHAR* path,DWORD size) {
@@ -1849,7 +1844,7 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     WNDCLASS wc = {}; wc.lpfnWndProc = WindowProc; wc.hInstance = instance; wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
     if (!RegisterClass(&wc)) return 1;
-    WNDCLASS swc={};swc.lpfnWndProc=SettingsWindowProc;swc.hInstance=instance;swc.lpszClassName=_T("MIDI_PIXEL_SETTINGS_WINDOW");swc.hCursor=LoadCursor(NULL,IDC_ARROW);swc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);if(!RegisterClass(&swc))return 1;
+    WNDCLASS swc={};swc.lpfnWndProc=SettingsWindowProc;swc.hInstance=instance;swc.lpszClassName=_T("MIDI_PIXEL_SETTINGS_WINDOW");swc.hCursor=LoadCursor(NULL,IDC_ARROW);swc.hbrBackground=GetSysColorBrush(COLOR_3DFACE);if(!RegisterClass(&swc))return 1;
     WNDCLASS iwc={}; iwc.lpfnWndProc=InfoWindowProc; iwc.hInstance=instance; iwc.lpszClassName=_T("MIDI_PIXEL_INFO_WINDOW");
     iwc.hCursor=LoadCursor(NULL,IDC_ARROW); iwc.hbrBackground=(HBRUSH)(COLOR_WINDOW+1);
     if(!RegisterClass(&iwc))return 1;
