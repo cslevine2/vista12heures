@@ -1340,6 +1340,9 @@ static void BuildSettingsPage(HWND hwnd,int page) {
     g_settingsPage=page;
     for(int id=SETTINGS_FIELD_BASE;id<SETTINGS_FIELD_BASE+100;++id){HWND c=GetDlgItem(hwnd,id);if(c)DestroyWindow(c);}
     for(int id=SETTINGS_NAV_BASE;id<SETTINGS_NAV_BASE+7;++id){HWND c=GetDlgItem(hwnd,id);if(c)SendMessage(c,BM_SETSTATE,(id-SETTINGS_NAV_BASE)==page,0);}
+    ShowWindow(GetDlgItem(hwnd,101),page==0?SW_SHOW:SW_HIDE);
+    ShowWindow(GetDlgItem(hwnd,102),page==0?SW_SHOW:SW_HIDE);
+    ShowWindow(GetDlgItem(hwnd,105),page==0?SW_SHOW:SW_HIDE);
     LoadSettingsPageItems(page);
     for(size_t i=0;i<g_settingItems.size();++i) {
         int y=76+(int)i*27;
@@ -1390,6 +1393,8 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
         }
         g_mapperCheck=CreateWindowEx(0,_T("BUTTON"),_T("Use MIDI Mapper"),WS_CHILD|BS_AUTOCHECKBOX,194,82,180,24,hwnd,(HMENU)101,NULL,NULL);
         g_outputCombo=CreateWindowEx(WS_EX_CLIENTEDGE,_T("COMBOBOX"),_T(""),WS_CHILD|WS_VSCROLL|CBS_DROPDOWNLIST,418,82,284,180,hwnd,(HMENU)102,NULL,NULL);
+        HWND midiLabel=CreateWindowEx(0,_T("STATIC"),_T("OUTPUT DEVICE"),WS_CHILD,418,57,200,20,hwnd,(HMENU)105,NULL,NULL);
+        if(g_settingsFont)SendMessage(midiLabel,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);
         HWND apply=CreateWindowEx(0,_T("BUTTON"),_T("APPLY"),WS_CHILD|WS_VISIBLE|BS_DEFPUSHBUTTON,526,632,84,30,hwnd,(HMENU)103,NULL,NULL);
         HWND close=CreateWindowEx(0,_T("BUTTON"),_T("CLOSE"),WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON,618,632,84,30,hwnd,(HMENU)104,NULL,NULL);
         if(g_settingsFont){SendMessage(g_mapperCheck,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(g_outputCombo,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(apply,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);SendMessage(close,WM_SETFONT,(WPARAM)g_settingsFont,TRUE);}
