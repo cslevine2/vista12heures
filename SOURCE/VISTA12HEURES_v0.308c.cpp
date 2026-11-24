@@ -1419,19 +1419,21 @@ static void ChooseSettingColor(HWND hwnd,int index) {
     COLORREF custom[16]={};CHOOSECOLOR cc={sizeof(cc)};cc.hwndOwner=hwnd;cc.rgbResult=RGB(r,g,b);cc.lpCustColors=custom;cc.Flags=CC_FULLOPEN|CC_RGBINIT;
     if(ChooseColor(&cc)){_stprintf_s(value,_T("%d, %d, %d"),GetRValue(cc.rgbResult),GetGValue(cc.rgbResult),GetBValue(cc.rgbResult));SetWindowText(edit,value);HWND swatch=GetDlgItem(hwnd,SETTINGS_FIELD_BASE+50+index);if(swatch)InvalidateRect(swatch,NULL,TRUE);}
 }
-static void ApplyAllSettings(HWND hwnd) {
+static void ApplyAllSettings(HWND hwnd,bool commit) {
     SaveSettingsPage(hwnd);
     g_useMidiMapper=SendMessage(g_mapperCheck,BM_GETCHECK,0,0)==BST_CHECKED;
     if(!g_useMidiMapper){int row=(int)SendMessage(g_outputCombo,CB_GETCURSEL,0,0);if(row>=0)g_selectedMidiDevice=(UINT)SendMessage(g_outputCombo,CB_GETITEMDATA,row,0);}
     WriteSettingsValues(g_settingsDraft);
-    SaveMidiOutputSettings();OpenMidiOutput(hwnd);
+    OpenMidiOutput(hwnd);
     LoadColorPalette();LoadInterfaceColors();LoadInstrumentDisplaySettings();LoadKeyboardSettings();
+    if(commit)SaveMidiOutputSettings();
+    else WriteSettingsValues(g_settingsOriginal);
     DestroyBackBuffer();HWND owner=GetParent(hwnd);if(owner)InvalidateRect(owner,NULL,FALSE);
 }
 static void CancelSettings(HWND hwnd) {
     WriteSettingsValues(g_settingsOriginal);
     g_useMidiMapper=g_settingsOriginalUseMapper;g_selectedMidiDevice=g_settingsOriginalDevice;
-    SaveMidiOutputSettings();OpenMidiOutput(hwnd);
+    OpenMidiOutput(hwnd);
     LoadColorPalette();LoadInterfaceColors();LoadInstrumentDisplaySettings();LoadKeyboardSettings();
     DestroyBackBuffer();HWND owner=GetParent(hwnd);if(owner)InvalidateRect(owner,NULL,FALSE);
     ShowWindow(hwnd,SW_HIDE);
@@ -1491,9 +1493,9 @@ static LRESULT CALLBACK SettingsWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM l
         int id=LOWORD(wp);
         if(id>=SETTINGS_FIELD_BASE+50&&id<SETTINGS_FIELD_BASE+100){ChooseSettingColor(hwnd,id-SETTINGS_FIELD_BASE-50);return 0;}
         if(id==101&&HIWORD(wp)==BN_CLICKED){EnableWindow(g_outputCombo,SendMessage(g_mapperCheck,BM_GETCHECK,0,0)!=BST_CHECKED);return 0;}
-        if(id==103){ApplyAllSettings(hwnd);ShowWindow(hwnd,SW_HIDE);return 0;}
+        if(id==103){ApplyAllSettings(hwnd,true);ShowWindow(hwnd,SW_HIDE);return 0;}
         if(id==104){CancelSettings(hwnd);return 0;}
-        if(id==107){ApplyAllSettings(hwnd);return 0;}
+        if(id==107){ApplyAllSettings(hwnd,false);return 0;}
         break;
     }
     case WM_DRAWITEM: {
