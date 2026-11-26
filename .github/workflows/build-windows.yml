@@ -33,26 +33,26 @@ jobs:
       - name: Assemble versioned package
         shell: powershell
         run: |
-                    $package = "PACKAGE_v0.5"
+          $package = "PACKAGE_v0.5"
           New-Item -ItemType Directory -Force -Path $package | Out-Null
-          Copy-Item "VISTA12HEURES_v0.5.EXE" "$package\\"
-          Copy-Item "SETTINGS_v0.4.INI" "$package\\SETTINGS.INI"
-          if (Test-Path "MIDIOUT.INI") { Copy-Item "MIDIOUT.INI" "$package\\" }
-          New-Item -ItemType Directory -Force -Path "$package\\datas programme" | Out-Null
-          New-Item -ItemType Directory -Force -Path "$package\\infos\\programme_source" | Out-Null
-          Copy-Item "GM-XG.XML" "$package\\datas programme\\"
+          Copy-Item "VISTA12HEURES_v0.5.EXE" "$package\"
+          Copy-Item "SETTINGS_v0.4.INI" "$package\SETTINGS.INI"
+          if (Test-Path "MIDIOUT.INI") { Copy-Item "MIDIOUT.INI" "$package\" }
+          New-Item -ItemType Directory -Force -Path "$package\datas programme" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$package\infos\programme_source" | Out-Null
+          Copy-Item "GM-XG.XML" "$package\datas programme\"
           foreach ($asset in @("MIDIPIXELS.TXT", "history.txt", "auteurs.txt")) {
-            if (Test-Path $asset) { Copy-Item $asset "$package\\infos\\" }
+            if (Test-Path $asset) { Copy-Item $asset "$package\infos\" }
           }
-          if (Test-Path "auteurs.gif") { Copy-Item "auteurs.gif" "$package\\infos\\-auteurs.gif" }
-          Copy-Item "SOURCE\\VISTA12HEURES_v0.4.cpp" "$package\\infos\\programme_source\\MIDIPIXELS.cpp"
-          Copy-Item "RESOURCES\\Midipixel.ico" "$package\\infos\\"
-          if (-not (Test-Path "$package\\SETTINGS.INI")) { throw "Versioned SETTINGS.INI missing." }
+          if (Test-Path "auteurs.gif") { Copy-Item "auteurs.gif" "$package\infos\-auteurs.gif" }
+          Copy-Item "SOURCE\VISTA12HEURES_v0.4.cpp" "$package\infos\programme_source\MIDIPIXELS.cpp"
+          Copy-Item "RESOURCES\Midipixel.ico" "$package\infos\"
+          if (-not (Test-Path "$package\SETTINGS.INI")) { throw "Versioned SETTINGS.INI missing." }
 
       - name: Upload versioned package
         uses: actions/upload-artifact@v4
         with:
           name: MIDIPIXELS_v0.5
-          path: PACKAGE_v0.4\
+          path: PACKAGE_v0.5\
           if-no-files-found: error
           retention-days: 30
