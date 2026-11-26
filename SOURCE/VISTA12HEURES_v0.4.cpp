@@ -1676,7 +1676,7 @@ static UINT AuthorsGifFrameDelay(UINT index) {
 }
 static void CloseAuthorsGif(){if(g_infoWnd)KillTimer(g_infoWnd,2);delete g_authorsGif;g_authorsGif=NULL;if(g_authorsGifStream){g_authorsGifStream->Release();g_authorsGifStream=NULL;}g_gifFrameCount=0;g_gifFrameIndex=0;g_gifFrameDelaysMs.clear();}
 static void LoadAuthorsGif(HWND hwnd) {
- CloseAuthorsGif();TCHAR path[MAX_PATH]={};BuildSideFilePath(_T("-auteurs.gif"),path,MAX_PATH);
+ CloseAuthorsGif();TCHAR path[MAX_PATH]={};BuildSideFilePath(_T("auteurs.GIF"),path,MAX_PATH);
 #ifdef UNICODE
  const WCHAR* wp=path;
 #else
@@ -1856,7 +1856,7 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                     int dw=(int)(iw*z),dh=(int)(ih*z);
                     gr.DrawImage(g_authorsGif,(r.right-dw)/2,(imageRect.top+imageRect.bottom-dh)/2,dw,dh);
                 }
-            } else Txt(dc,14,48,_T("Place -auteurs.gif in the infos folder"),RGB(205,210,225),10);
+            } else Txt(dc,14,48,_T("Place auteurs.GIF in the infos folder"),RGB(205,210,225),10);
             HPEN ap=CreatePen(PS_SOLID,1,g_uiLines);HPEN ao=(HPEN)SelectObject(dc,ap);
             MoveToEx(dc,10,gifBottom,NULL);LineTo(dc,r.right-10,gifBottom);
             SelectObject(dc,ao);DeleteObject(ap);
