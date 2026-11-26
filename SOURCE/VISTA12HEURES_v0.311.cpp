@@ -1263,7 +1263,9 @@ static void Paint(HWND hwnd) {
         if(!ticksPerMeasure)ticksPerMeasure=1;
         unsigned long long measure=currentTick/ticksPerMeasure+1;
         unsigned long long beat=(currentTick%ticksPerMeasure)/ticksPerBeat+1;
-        TCHAR measureValue[64]={};\n        _stprintf_s(measureValue,_T("%llu %llu"),measure,beat);\n        _stprintf_s(metaText,_T("MEASURE: %8s"),measureValue);
+TCHAR measureValue[64]={};
+        _stprintf_s(measureValue,_T("%llu %llu"),measure,beat);
+        _stprintf_s(metaText,_T("MEASURE: %8s"),measureValue);
         TxtFixed(dc,24,infoTop+4*infoStep,metaText,RGB(205,210,225),g_musicdataFontSize);
     }
     int rows=DisplayRowCount();
