@@ -2039,6 +2039,24 @@ static LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     return DefWindowProc(hwnd, msg, wp, lp);
 }
+// Keep a saved window rectangle usable when the primary display resolution changes.
+// External-monitor placement is intentionally not handled here.
+static void FitStartupWindowToWorkArea(int& x,int& y,int& w,int& h) {
+    RECT work={};
+    if(!SystemParametersInfo(SPI_GETWORKAREA,0,&work,0)) return;
+    const int areaW=work.right-work.left;
+    const int areaH=work.bottom-work.top;
+    if(areaW<1||areaH<1) return;
+    if(w>areaW-2) w=areaW-2;
+    if(h>areaH-2) h=areaH-2;
+    if(x<work.left || x+w>work.right) x=work.left+1;
+    if(y<work.top || y+h>work.bottom) y=work.top+1;
+    if(x+w>work.right) w=work.right-x-1;
+    if(y+h>work.bottom) h=work.bottom-y-1;
+    if(w<1) w=1;
+    if(h<1) h=1;
+}
+
 int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     Gdiplus::GdiplusStartupInput gdiplusStartupInput;if(Gdiplus::GdiplusStartup(&g_gdiplusToken,&gdiplusStartupInput,NULL)!=Gdiplus::Ok)return 1;
     TCHAR exe[MAX_PATH]; GetModuleFileName(NULL, exe, MAX_PATH);
@@ -2057,7 +2075,8 @@ int APIENTRY WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int show) {
     int w = GetIniIntAnySection(_T("windowWidth"),WIN_W);
     int h = GetIniIntAnySection(_T("windowHeight"),WIN_H);
     g_startFullscreen=GetIniIntAnySection(_T("WindowsState"),0)!=0;
-    if (w < 500 || w > 2000) w = WIN_W; if (h < 350 || h > 1400) h = WIN_H;
+    if (w < 500) w = WIN_W; if (h < 350) h = WIN_H;
+    FitStartupWindowToWorkArea(x,y,w,h);
     const TCHAR CLASS_NAME[] = _T("MIDI_PIXEL_FIRST_WINDOW");
     WNDCLASS wc = {}; wc.lpfnWndProc = WindowProc; wc.hInstance = instance; wc.lpszClassName = CLASS_NAME;
     wc.hCursor = LoadCursor(NULL, IDC_ARROW); wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
