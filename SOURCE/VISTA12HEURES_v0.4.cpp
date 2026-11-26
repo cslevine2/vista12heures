@@ -1808,7 +1808,7 @@ static HFONT CreateDocumentFont(int size) {
 static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
     switch(msg) {
     case WM_ERASEBKGND: return 1;
-    case WM_TIMER: {if(wp==2&&g_authorsGif&&g_gifFrameCount>1){g_gifFrameIndex=(g_gifFrameIndex+1)%g_gifFrameCount;g_authorsGif->SelectActiveFrame(&g_gifFrameDimension,g_gifFrameIndex);SetTimer(hwnd,2,AuthorsGifFrameDelay(g_gifFrameIndex),NULL);RECT imageRect;GetClientRect(hwnd,&imageRect);imageRect.left=10;imageRect.top=43;imageRect.bottom=43+(imageRect.bottom-55)*2/5;imageRect.right-=10;InvalidateRect(hwnd,&imageRect,FALSE);return 0;}break;}
+    case WM_TIMER: {if(wp==2&&g_authorsGif&&g_gifFrameCount>1){g_gifFrameIndex=(g_gifFrameIndex+1)%g_gifFrameCount;/* Keep GDI+ GIF frame composition/disposal semantics: transparent pixels may reveal preceding frames. */g_authorsGif->SelectActiveFrame(&g_gifFrameDimension,g_gifFrameIndex);SetTimer(hwnd,2,AuthorsGifFrameDelay(g_gifFrameIndex),NULL);RECT imageRect;GetClientRect(hwnd,&imageRect);imageRect.left=10;imageRect.top=43;imageRect.bottom=43+(imageRect.bottom-55)*2/5;imageRect.right-=10;InvalidateRect(hwnd,&imageRect,FALSE);return 0;}break;}
     case WM_MOUSEWHEEL: {
         RECT client; GetClientRect(hwnd,&client);
         int maxScroll=(int)(g_infoText.size()*18)-(client.bottom-48);
