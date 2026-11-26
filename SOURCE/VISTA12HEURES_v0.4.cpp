@@ -363,7 +363,7 @@ static void LoadProgramNames() {
     lstrcpyn(path, g_iniPath, MAX_PATH);
     TCHAR* slash = _tcsrchr(path, _T('\\'));
     if (slash) *(slash + 1) = 0;
-    _tcscat_s(path, MAX_PATH, _T("GM-XG.XML"));
+    _tcscat_s(path, MAX_PATH, _T("datas programme\\GM-XG.XML"));
 
     FILE* f = NULL;
     if (_tfopen_s(&f, path, _T("rb")) != 0 || !f) return;
@@ -1606,7 +1606,7 @@ static void ShowMidiOutputSettings(HWND owner) {
 }
 
 static void BuildSideFilePath(const TCHAR* fileName,TCHAR* path,DWORD size) {
- lstrcpyn(path,g_iniPath,(int)size);TCHAR* slash=_tcsrchr(path,_T('\\'));if(slash)*(slash+1)=0;_tcsncat_s(path,size,fileName,_TRUNCATE);
+ lstrcpyn(path,g_iniPath,(int)size);TCHAR* slash=_tcsrchr(path,_T('\\\\'));if(slash)*(slash+1)=0;_tcsncat_s(path,size,_T("infos\\\\"),_TRUNCATE);_tcsncat_s(path,size,fileName,_TRUNCATE);
 }
 static bool IsValidUtf8(const unsigned char* s,size_t n) {
  size_t i=0;
@@ -1676,7 +1676,7 @@ static UINT AuthorsGifFrameDelay(UINT index) {
 }
 static void CloseAuthorsGif(){if(g_infoWnd)KillTimer(g_infoWnd,2);delete g_authorsGif;g_authorsGif=NULL;if(g_authorsGifStream){g_authorsGifStream->Release();g_authorsGifStream=NULL;}g_gifFrameCount=0;g_gifFrameIndex=0;g_gifFrameDelaysMs.clear();}
 static void LoadAuthorsGif(HWND hwnd) {
- CloseAuthorsGif();TCHAR path[MAX_PATH]={};BuildSideFilePath(_T("auteurs.GIF"),path,MAX_PATH);
+ CloseAuthorsGif();TCHAR path[MAX_PATH]={};BuildSideFilePath(_T("-auteurs.gif"),path,MAX_PATH);
 #ifdef UNICODE
  const WCHAR* wp=path;
 #else
@@ -1856,11 +1856,11 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
                     int dw=(int)(iw*z),dh=(int)(ih*z);
                     gr.DrawImage(g_authorsGif,(r.right-dw)/2,(imageRect.top+imageRect.bottom-dh)/2,dw,dh);
                 }
-            } else Txt(dc,14,48,_T("Place auteurs.GIF beside the EXE"),RGB(205,210,225),10);
+            } else Txt(dc,14,48,_T("Place -auteurs.gif in the infos folder"),RGB(205,210,225),10);
             HPEN ap=CreatePen(PS_SOLID,1,g_uiLines);HPEN ao=(HPEN)SelectObject(dc,ap);
             MoveToEx(dc,10,gifBottom,NULL);LineTo(dc,r.right-10,gifBottom);
             SelectObject(dc,ao);DeleteObject(ap);
-            if(g_infoText.empty())Txt(dc,14,textRect.top,_T("auteurs.txt not found beside the EXE."),RGB(205,210,225),10);
+            if(g_infoText.empty())Txt(dc,14,textRect.top,_T("auteurs.txt not found in the infos folder."),RGB(205,210,225),10);
             else {
                 RECT tr=textRect;tr.top-=g_infoScroll;
                 SetTextColor(dc,RGB(225,225,232));SetBkMode(dc,TRANSPARENT);
@@ -1876,7 +1876,7 @@ static LRESULT CALLBACK InfoWindowProc(HWND hwnd,UINT msg,WPARAM wp,LPARAM lp) {
             EndPaint(hwnd,&ps);return 0;
         }
         if(g_infoContent==1||g_infoContent==2){
-            if(g_infoText.empty())Txt(dc,14,48,_T("Text file not found beside the EXE."),RGB(205,210,225),10);
+            if(g_infoText.empty())Txt(dc,14,48,_T("Text file not found in the infos folder."),RGB(205,210,225),10);
             else {
                 RECT tr={14,43-g_infoScroll,r.right-14,r.bottom-12};
                 SetTextColor(dc,RGB(225,225,232));SetBkMode(dc,TRANSPARENT);
