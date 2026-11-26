@@ -44,7 +44,7 @@ jobs:
           foreach ($asset in @("MIDIPIXELS.TXT", "history.txt", "auteurs.txt")) {
             if (Test-Path $asset) { Copy-Item $asset "$package\infos\" }
           }
-          if (Test-Path "auteurs.gif") { Copy-Item "auteurs.gif" "$package\infos\-auteurs.gif" }
+          if (Test-Path "auteurs.gif") { Copy-Item "auteurs.gif" "$package\infos\auteurs.GIF" }
           Copy-Item "SOURCE\VISTA12HEURES_v0.4.cpp" "$package\infos\programme_source\MIDIPIXELS.cpp"
           Copy-Item "RESOURCES\Midipixel.ico" "$package\infos\"
           if (-not (Test-Path "$package\SETTINGS.INI")) { throw "Versioned SETTINGS.INI missing." }
