@@ -1,48 +1,108 @@
+        **************
+        * MIDIPIXELS *
+        **************
+
+
+v0.4   . encapsulage (embedding)
+         des GIF TXT dans l'EXE
+         ( 26.11.2026 )
 
 
 
-v0.305 textes fenêtres optimisés
-       bloc tempo mes optimisé
-       boutons fenetre discrets
-       noms d'auteurs intégrés
-       dans le .EXE
+
+v0.310 . raccourcis clavier "CUBASE"
+
+v0.309 . ! = Midi Panic ( All notes off )
+
+
+v0.308   FENETRE SETTINGS
+       . style standard habituel Windows
+       . palette couleurs habituel Windows
+       . OK Cancel Apply
+	( 24.11.2023 )
+
+
+
+
+
+
+v0.305 fenêtres textes optimisées
+       boutons windows discrets
+       noms d'auteurs intégrés au .EXE
        ( 23.11.2026 )
+
 
 v0.304 la taille des PIXEL-NOTES
        est personnalisable
-       optimisation des testes
-       ( 22.11.2026 )
+
 
 v0.303 affichage des champs
        0x03 Title/Track name
        0x01 text event
        0x06 copyright
        optimisation pistes
-       ( 22.11.2026 )
+       (ne plus afficher la piste n°0)
 
 v0.3   affichage des crédits
        et de ce texte
        ( 22.11.2026 )
-       
-       il y a 1 an :
-       "montdiablo.mid"
 
-v0.2
+v0.01  fist beta
+       progress bar seek
+       ( 19 nov 2026  22:53 )
 
-[...]
 
-v0.1
 
-[...]
 
-v0.001 Alpha  ( 19 nov 2026 )
-       Faisabilité de produire
-       un .EXE à distance :
-       La méthode GitHub MARCHE
 
-       il y a 1 an j'étais
-       dans un A350-500
-       de FrenchBee
+vA0.016 windows MIDI output support
+        PREMIERE ECOUTE REELLE
+        des musiques .MID
+        vers le haut parleur
+
+
+vA0.014 GM-XG programm-table XML
+
+vA0.012 marker visuel pour C3 et octaves
+
+vA0.010 palette interface configurable
+        via SETTINGS.INI
+
+
+vA0.006 input depuis Standard MIDI file
+        et Real Note display
+
+
+
+vA0.005 TEST generic channel animation
+
+vA0.004 Notes au dessus des lignes
+        ( 19 nov 2026  17:46 )
+
+vA0.003 POSITION DE LA FENETRE mémorisée
+        dans X,Y,hauteur, largeur
+        LA BASE obligée pour tout logiciel
+        qui respecte l'espace de l'utilisateur.
+
+
+
+
+vA0.002 alpha
+        choix de passer par GitHUB
+        Faisabilité de produire un .EXE
+        ( 19 nov 2026  16:54 )
+
+        nom "alias" choisi :
+        "VISTA12HEURES"
+        au lieu de
+        "MIDIPIXELS"
+
+
+
+vA0.001 test d'un script python .py        
+
+
+
 
 lundi 16 novembre - Asn
        première discussion
@@ -56,11 +116,14 @@ lundi 16 novembre - Asn
 
 NOTES
 
-Je n'ai pas écrit une seule ligne de programme !  L'I.A. a entièrement "vibe-codé" ( = faire programmer par une IA ) en C++, via les serveurs sans que je n'ai eu à installer quoique ce soit sur mon propre ordinateur ! Le requis pour "vibe-coder"  c'est d'avoir installé un navigateur internet (Firefox / Chrome / Brave / Safari / Netscape ...)
-. 1 créer un compte gratuit sur GitHub... avec un dépot public "repository" du nom du logiciel que tu veux créer.
-. 2 installer un "plugin" interne de ChatGPT qui s'appelle... "GitHub". Ce n'est PAS une extension de navigateur. L'interface de ChatGPT est conçue pour avoir ses propres extensions dans la rubrique "Plugins".
-. 3 avoir peut-être un petit abonnement payant à ChatGPT pour ne pas être trop limité.
 
-Avec ces 3 requis et en suivant les instructions : tu va obtenir des .ZIP à télécharger, qui contiennent directement le petit .EXE qui se lance directement depuis Windows !
+Pour obtenir ce résultat, le requis logiciel est un simple navigateur internet.
+Je n'ai rien installé d'autre sur l'ordinateur.
 
-( ASTUCE : T'es pas obligé tout de suite de donner un nom explicite du style "arme atomique maison pour éliminer Poutine" ou "GTA 6 Craft Open Source". T'appelles ton logiciel "Trucmuche" et tu verras si un espion de Microsoft ou Apple ou Meta va te piquer ton idée...)
+	******************
+	* ce texte est   *
+	* embeddé dans   *
+	* MIDIPIXELS.EXE *
+	******************
+
+cslevine
