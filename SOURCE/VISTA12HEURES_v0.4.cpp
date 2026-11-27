@@ -821,7 +821,7 @@ static void AdvancePlayback(HWND hwnd) {
             SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
             int bend=((e.b&0x7f)<<7)|(e.a&0x7f);
             g_pitchBend[e.channel]=bend-8192;
-            if(g_pitchBendDisplay&&!g_trackMode){int y=DisplayRowY(e.channel);RECT br={timelineX-210,y-11,timelineX+g_pitchBendRange+4,y-4};InvalidateRect(hwnd,&br,FALSE);}
+            if(g_pitchBendDisplay&&!g_trackMode){int y=DisplayRowY(e.channel);RECT br={7,y-11,229+g_pitchBendRange,y-4};InvalidateRect(hwnd,&br,FALSE);}
         } else {
             RECT oldRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if (e.type == 1) {
@@ -885,7 +885,7 @@ static void SeekPlaybackToUsec(HWND hwnd, unsigned long long target) {
         else if(e.type==0){g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}}
         else if (e.type == 2) g_program[e.channel] = e.a;
         else if (e.type == 5) { SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11)g_trackExpression[e.track]=e.b; if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10)g_trackPan[e.track]=e.b; }
-        else if (e.type == 6) SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
+        else if (e.type == 6) { SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); int bend=((e.b&0x7f)<<7)|(e.a&0x7f); g_pitchBend[e.channel]=bend-8192; }
         else if (e.type == 3) g_currentTempo = (unsigned int)e.a;
         else if (e.type == 4) { g_currentTimeNumerator = (unsigned char)e.a; g_currentTimeDenominatorPower = (unsigned char)e.b; }
     }
