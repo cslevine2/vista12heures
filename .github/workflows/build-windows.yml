@@ -23,7 +23,7 @@ jobs:
           if (-not $vs) { throw "Visual Studio installation not found." }
           $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvarsall.bat"
           if (-not (Test-Path $vcvars)) { throw "MSVC environment script not found: $vcvars" }
-          $exe = "VISTA12HEURES_v0.501.EXE"
+          $exe = "VISTA12HEURES_v0.501b.EXE"
           $resource = "MIDI_PIXEL.res"
           $command = "`"$vcvars`" x86 && rc /nologo /fo $resource RESOURCES\MIDIPIXEL_v0.4.rc && cl /nologo /O2 /MT /W4 /DWIN32_LEAN_AND_MEAN SOURCE\VISTA12HEURES_v0.4.cpp $resource /link /SUBSYSTEM:WINDOWS /OUT:$exe user32.lib gdi32.lib comdlg32.lib winmm.lib shell32.lib gdiplus.lib comctl32.lib ole32.lib"
           cmd.exe /d /c $command
@@ -33,9 +33,9 @@ jobs:
       - name: Assemble versioned package
         shell: powershell
         run: |
-          $package = "PACKAGE_v0.501"
+          $package = "PACKAGE_v0.501b"
           New-Item -ItemType Directory -Force -Path $package | Out-Null
-          Copy-Item "VISTA12HEURES_v0.501.EXE" "$package\"
+          Copy-Item "VISTA12HEURES_v0.501b.EXE" "$package\"
           Copy-Item "SETTINGS_v0.4.INI" "$package\SETTINGS.INI"
           if (Test-Path "MIDIOUT.INI") { Copy-Item "MIDIOUT.INI" "$package\" }
           New-Item -ItemType Directory -Force -Path "$package\datas programme" | Out-Null
@@ -52,7 +52,7 @@ jobs:
       - name: Upload versioned package
         uses: actions/upload-artifact@v4
         with:
-          name: MIDIPIXELS_v0.501
-          path: PACKAGE_v0.501\
+          name: MIDIPIXELS_v0.501b
+          path: PACKAGE_v0.501b\
           if-no-files-found: error
           retention-days: 30
