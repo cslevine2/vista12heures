@@ -845,7 +845,7 @@ static void AdvancePlayback(HWND hwnd) {
             } else {
                 SendMidiShort((unsigned char)(0x80 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
                 g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;
-                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;g_trackNoteChannel[e.track][e.a]=-1;}
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}
             }
             RECT newRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if(g_miniMode) {
@@ -899,8 +899,8 @@ static void SeekPlaybackToUsec(HWND hwnd, unsigned long long target) {
     ClearPlayback();
     while (g_eventIndex < g_events.size() && g_events[g_eventIndex].usec <= target) {
         const MidiEvent& e = g_events[g_eventIndex++];
-        if(e.type==1){g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;g_trackNoteDisplayUntil[e.track][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_trackNoteDisplayVelocity[e.track][e.a]=e.b;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}}
-        else if(e.type==0){g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;g_trackNoteChannel[e.track][e.a]=-1;}}
+        if(e.type==1){g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;g_trackNoteDisplayUntil[e.track][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_trackNoteDisplayVelocity[e.track][e.a]=e.b;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}}
+        else if(e.type==0){g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;if(target>=g_trackNoteDisplayUntil[e.track][e.a])g_trackNoteChannel[e.track][e.a]=-1;}}
         else if (e.type == 2) g_program[e.channel] = e.a;
         else if (e.type == 5) { SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11)g_trackExpression[e.track]=e.b; if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10)g_trackPan[e.track]=e.b; }
         else if (e.type == 6) { SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); int bend=((e.b&0x7f)<<7)|(e.a&0x7f); g_pitchBend[e.channel]=bend-8192; }
