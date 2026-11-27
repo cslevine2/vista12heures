@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("v0.5");
+static const TCHAR VERSION[] = _T("v0.501");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -66,6 +66,9 @@ static COLORREF g_midiLinearControlsColor=RGB(205,150,55);
 static bool g_trackMode=false;
 static COLORREF g_percussionColor=RGB(230,110,190);
 static int g_velocity[MIDI_CHANNELS][MIDI_NOTES] = {};
+static int g_pitchBend[MIDI_CHANNELS] = {}; // MIDI Pitch Bend: -8192..+8191
+static bool g_pitchBendDisplay = true;
+static int g_pitchBendRange = 20; // Maximum indicator length in pixels
 static COLORREF g_noteColors[12] = {
  RGB(232,222,90), RGB(207,207,134), RGB(70,70,70), RGB(173,53,53),
  RGB(212,92,53), RGB(210,222,222), RGB(101,133,195), RGB(30,65,133),
@@ -235,6 +238,10 @@ static void LoadColorPalette() {
   }
   g_noteColors[i]=RGB(rgb[0],rgb[1],rgb[2]);
  }
+ g_pitchBendDisplay=GetIniIntAnySection(_T("pitchbend"),1)!=0;
+ g_pitchBendRange=GetIniIntAnySection(_T("pitchbendrange"),20);
+ if(g_pitchBendRange<0)g_pitchBendRange=0;
+ if(g_pitchBendRange>200)g_pitchBendRange=200;
  int minimum=GetIniIntAnySection(_T("VelocityMinimumPercent"),10);
  if(minimum<0)minimum=0; if(minimum>100)minimum=100;
  g_velocityMinimum=minimum/100.0;
@@ -485,6 +492,7 @@ static void ResumeActiveNotes() {
 }
 static void ClearPlayback() {
     memset(g_active, 0, sizeof(g_active));
+    memset(g_pitchBend,0,sizeof(g_pitchBend));
     for(int ch=0;ch<MIDI_CHANNELS;++ch)SendMidiShort((unsigned char)(0xE0|ch),0,64);
     std::fill(g_trackExpression.begin(),g_trackExpression.end(),127);
     std::fill(g_trackPan.begin(),g_trackPan.end(),64);
@@ -811,6 +819,9 @@ static void AdvancePlayback(HWND hwnd) {
             if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10){g_trackPan[e.track]=e.b;RECT cr={22,DisplayRowY(e.track)-7,82,DisplayRowY(e.track)+9};InvalidateRect(hwnd,&cr,FALSE);}
         } else if (e.type == 6) {
             SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
+            int bend=((e.b&0x7f)<<7)|(e.a&0x7f);
+            g_pitchBend[e.channel]=bend-8192;
+            if(g_pitchBendDisplay&&!g_trackMode){int y=DisplayRowY(e.channel);RECT br={timelineX-210,y-11,timelineX+g_pitchBendRange+4,y-4};InvalidateRect(hwnd,&br,FALSE);}
         } else {
             RECT oldRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if (e.type == 1) {
@@ -1277,7 +1288,7 @@ TCHAR measureValue[64]={};
     int rows=DisplayRowCount();
     if(!g_trackMode){for(int ch=0;ch<MIDI_CHANNELS;++ch){int y=DisplayRowY(ch);TCHAR p[16]={};if(ch==9)lstrcpyn(p,_T("RYTHME"),16);else _stprintf_s(p,_T("%03d"),g_program[ch]+1);Txt(dc,72,y-5,g_loaded?p:_T("---"),RGB(160,170,195),10);
       if(ch!=9&&g_loaded&&g_programNames[g_program[ch]][0]){RECT nr={106,y-7,timelineX-7,y+9};TxtClipped(dc,nr,g_programNames[g_program[ch]],RGB(205,210,225),g_instrumentFontSize);}
-      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]){RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;FillRectColor(dc,nr,ch==9?ColorForPercussion(g_velocity[ch][n]):ColorForNote(n,g_velocity[ch][n]));}}}
+      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]){RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;FillRectColor(dc,nr,ch==9?ColorForPercussion(g_velocity[ch][n]):ColorForNote(n,g_velocity[ch][n]));}if(g_pitchBendDisplay&&g_pitchBend[ch]!=0&&g_pitchBendRange>0){int pixels=(int)((long long)g_pitchBend[ch]*g_pitchBendRange/8192);int anchor=timelineX-8;int x1=pixels<0?anchor+pixels:anchor;int x2=pixels<0?anchor:anchor+pixels;int py=y-8;if(x2>x1&&x2>=ps.rcPaint.left&&x1<=ps.rcPaint.right&&py>=ps.rcPaint.top&&py<=ps.rcPaint.bottom){HPEN pen=CreatePen(PS_SOLID,2,g_midiLinearControlsColor);HPEN old=(HPEN)SelectObject(dc,pen);MoveToEx(dc,x1,py,NULL);LineTo(dc,x2,py);SelectObject(dc,old);DeleteObject(pen);}}}}
     else if(g_loaded){for(int tr=0;tr<rows;++tr){int y=DisplayRowY(tr);RECT vr={24,y-2,24+(24*g_trackExpression[tr])/127,y+2};if(vr.right>vr.left&&vr.right>ps.rcPaint.left&&vr.left<ps.rcPaint.right&&vr.bottom>ps.rcPaint.top&&vr.top<ps.rcPaint.bottom)FillRectColor(dc,vr,g_midiLinearControlsColor);int px=54+(24*g_trackPan[tr])/127;RECT pan={px-1,y-5,px+2,y+6};if(pan.right>ps.rcPaint.left&&pan.left<ps.rcPaint.right&&pan.bottom>ps.rcPaint.top&&pan.top<ps.rcPaint.bottom)FillRectColor(dc,pan,g_midiLinearControlsColor);for(int n=0;n<MIDI_NOTES;++n){RECT nr=NoteRect(tr,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;if(g_trackActive[tr][n])FillRectColor(dc,nr,ColorForNote(n,g_trackVelocity[tr][n]));if(g_trackPercussionActive[tr][n])FillRectColor(dc,nr,ColorForPercussion(g_trackPercussionVelocity[tr][n]));}}}
     int barY = cr.bottom - 77;
     RECT progressFill = { 0, barY + 2, ProgressWidth(cr.right), barY + g_progressHeight - 2 };
