@@ -1201,6 +1201,19 @@ static void DrawWindowButtonFrame(HDC dc,RECT r,COLORREF color) {
     Rectangle(dc,r.left,r.top,r.right,r.bottom);
     SelectObject(dc,oldBrush);SelectObject(dc,oldPen);DeleteObject(pen);
 }
+static void DrawNotePitchBend(HDC dc,const RECT& noteRect,int bend) {
+    if(!g_pitchBendDisplay||g_pitchBendRange<=0||bend==0)return;
+    int length=(int)((long long)bend*g_pitchBendRange/8192);
+    if(length==0)return;
+    int anchor=noteRect.left;
+    int x1=length<0?anchor+length:anchor;
+    int x2=length<0?anchor:anchor+length;
+    int y=noteRect.top+(noteRect.bottom-noteRect.top)/2;
+    HPEN pen=CreatePen(PS_SOLID,2,g_midiLinearControlsColor);
+    HPEN old=(HPEN)SelectObject(dc,pen);
+    MoveToEx(dc,x1,y,NULL);LineTo(dc,x2,y);
+    SelectObject(dc,old);DeleteObject(pen);
+}
 static void Paint(HWND hwnd) {
     PAINTSTRUCT ps; HDC dc = BeginPaint(hwnd, &ps);
     RECT cr; GetClientRect(hwnd, &cr);
@@ -1288,8 +1301,8 @@ TCHAR measureValue[64]={};
     int rows=DisplayRowCount();
     if(!g_trackMode){for(int ch=0;ch<MIDI_CHANNELS;++ch){int y=DisplayRowY(ch);TCHAR p[16]={};if(ch==9)lstrcpyn(p,_T("RYTHME"),16);else _stprintf_s(p,_T("%03d"),g_program[ch]+1);Txt(dc,72,y-5,g_loaded?p:_T("---"),RGB(160,170,195),10);
       if(ch!=9&&g_loaded&&g_programNames[g_program[ch]][0]){RECT nr={106,y-7,timelineX-7,y+9};TxtClipped(dc,nr,g_programNames[g_program[ch]],RGB(205,210,225),g_instrumentFontSize);}
-      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]){RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;FillRectColor(dc,nr,ch==9?ColorForPercussion(g_velocity[ch][n]):ColorForNote(n,g_velocity[ch][n]));}if(g_pitchBendDisplay&&g_pitchBend[ch]!=0&&g_pitchBendRange>0){int pixels=(int)((long long)g_pitchBend[ch]*g_pitchBendRange/8192);int anchor=timelineX-8;int x1=pixels<0?anchor+pixels:anchor;int x2=pixels<0?anchor:anchor+pixels;int py=y-8;if(x2>x1&&x2>=ps.rcPaint.left&&x1<=ps.rcPaint.right&&py>=ps.rcPaint.top&&py<=ps.rcPaint.bottom){HPEN pen=CreatePen(PS_SOLID,2,g_midiLinearControlsColor);HPEN old=(HPEN)SelectObject(dc,pen);MoveToEx(dc,x1,py,NULL);LineTo(dc,x2,py);SelectObject(dc,old);DeleteObject(pen);}}}}
-    else if(g_loaded){for(int tr=0;tr<rows;++tr){int y=DisplayRowY(tr);RECT vr={24,y-2,24+(24*g_trackExpression[tr])/127,y+2};if(vr.right>vr.left&&vr.right>ps.rcPaint.left&&vr.left<ps.rcPaint.right&&vr.bottom>ps.rcPaint.top&&vr.top<ps.rcPaint.bottom)FillRectColor(dc,vr,g_midiLinearControlsColor);int px=54+(24*g_trackPan[tr])/127;RECT pan={px-1,y-5,px+2,y+6};if(pan.right>ps.rcPaint.left&&pan.left<ps.rcPaint.right&&pan.bottom>ps.rcPaint.top&&pan.top<ps.rcPaint.bottom)FillRectColor(dc,pan,g_midiLinearControlsColor);for(int n=0;n<MIDI_NOTES;++n){RECT nr=NoteRect(tr,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;if(g_trackActive[tr][n])FillRectColor(dc,nr,ColorForNote(n,g_trackVelocity[tr][n]));if(g_trackPercussionActive[tr][n])FillRectColor(dc,nr,ColorForPercussion(g_trackPercussionVelocity[tr][n]));}}}
+      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]){RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;FillRectColor(dc,nr,ch==9?ColorForPercussion(g_velocity[ch][n]):ColorForNote(n,g_velocity[ch][n]));DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}}}
+    else if(g_loaded){for(int tr=0;tr<rows;++tr){int y=DisplayRowY(tr);RECT vr={24,y-2,24+(24*g_trackExpression[tr])/127,y+2};if(vr.right>vr.left&&vr.right>ps.rcPaint.left&&vr.left<ps.rcPaint.right&&vr.bottom>ps.rcPaint.top&&vr.top<ps.rcPaint.bottom)FillRectColor(dc,vr,g_midiLinearControlsColor);int px=54+(24*g_trackPan[tr])/127;RECT pan={px-1,y-5,px+2,y+6};if(pan.right>ps.rcPaint.left&&pan.left<ps.rcPaint.right&&pan.bottom>ps.rcPaint.top&&pan.top<ps.rcPaint.bottom)FillRectColor(dc,pan,g_midiLinearControlsColor);for(int n=0;n<MIDI_NOTES;++n){RECT nr=NoteRect(tr,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;if(g_trackActive[tr][n]){FillRectColor(dc,nr,ColorForNote(n,g_trackVelocity[tr][n]));int ch=g_trackNoteChannel[tr][n];if(ch>=0&&ch<MIDI_CHANNELS)DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}if(g_trackPercussionActive[tr][n]){FillRectColor(dc,nr,ColorForPercussion(g_trackPercussionVelocity[tr][n]));int ch=g_trackNoteChannel[tr][n];if(ch>=0&&ch<MIDI_CHANNELS)DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}}}}
     int barY = cr.bottom - 77;
     RECT progressFill = { 0, barY + 2, ProgressWidth(cr.right), barY + g_progressHeight - 2 };
     RECT visibleFill;
