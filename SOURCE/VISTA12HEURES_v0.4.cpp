@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("v0.501");
+static const TCHAR VERSION[] = _T("v0.501b");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -60,6 +60,7 @@ static ULONG_PTR g_gdiplusToken=0;
 static unsigned char g_active[MIDI_CHANNELS][MIDI_NOTES] = {};
 static std::vector<std::vector<unsigned char>> g_trackActive,g_trackPercussionActive;
 static std::vector<std::vector<int>> g_trackVelocity,g_trackPercussionVelocity;
+static std::vector<std::vector<int>> g_trackNoteChannel;
 static std::vector<int> g_trackExpression,g_trackPan;
 static COLORREF g_verticalPanCenterLine=RGB(110,100,75);
 static COLORREF g_midiLinearControlsColor=RGB(205,150,55);
@@ -497,7 +498,7 @@ static void ClearPlayback() {
     std::fill(g_trackExpression.begin(),g_trackExpression.end(),127);
     std::fill(g_trackPan.begin(),g_trackPan.end(),64);
     memset(g_velocity, 0, sizeof(g_velocity));
-    for(size_t t=0;t<g_trackActive.size();++t){std::fill(g_trackActive[t].begin(),g_trackActive[t].end(),0);std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);std::fill(g_trackVelocity[t].begin(),g_trackVelocity[t].end(),0);std::fill(g_trackPercussionVelocity[t].begin(),g_trackPercussionVelocity[t].end(),0);}
+    for(size_t t=0;t<g_trackActive.size();++t){std::fill(g_trackNoteChannel[t].begin(),g_trackNoteChannel[t].end(),-1);std::fill(g_trackActive[t].begin(),g_trackActive[t].end(),0);std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);std::fill(g_trackVelocity[t].begin(),g_trackVelocity[t].end(),0);std::fill(g_trackPercussionVelocity[t].begin(),g_trackPercussionVelocity[t].end(),0);}
     memcpy(g_program, g_initialProgram, sizeof(g_program));
     g_elapsedUsec = 0;
     g_lastDisplayedSecond = ~0ULL;
@@ -693,6 +694,7 @@ static bool LoadMidiFile(const TCHAR* path) {
     g_events.swap(events);
     g_tracks.swap(tracks);
     g_trackActive.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));
+    g_trackNoteChannel.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,-1));
     g_trackPercussionActive.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));
     g_trackVelocity.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,0));
     g_trackPercussionVelocity.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,0));
@@ -821,17 +823,17 @@ static void AdvancePlayback(HWND hwnd) {
             SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
             int bend=((e.b&0x7f)<<7)|(e.a&0x7f);
             g_pitchBend[e.channel]=bend-8192;
-            if(g_pitchBendDisplay&&!g_trackMode){int y=DisplayRowY(e.channel);RECT br={7,y-11,229+g_pitchBendRange,y-4};InvalidateRect(hwnd,&br,FALSE);}
+            if(g_pitchBendDisplay&&g_pitchBendRange>0){RECT br={220,30,client.right-20,34+DisplayRowCount()*18};InvalidateRect(hwnd,&br,FALSE);}
         } else {
             RECT oldRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if (e.type == 1) {
                 SendMidiShort((unsigned char)(0x90 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
                 g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;
-                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}
             } else {
                 SendMidiShort((unsigned char)(0x80 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
                 g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;
-                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;g_trackNoteChannel[e.track][e.a]=-1;}
             }
             RECT newRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if(g_miniMode) {
