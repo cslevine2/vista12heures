@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("v0.502");
+static const TCHAR VERSION[] = _T("v0.502b");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -861,10 +861,15 @@ static void AdvancePlayback(HWND hwnd) {
             dynamicChanged = true;
         }
     }
-    bool expiredNotes=false;
-    for(int ch=0;ch<MIDI_CHANNELS;++ch)for(int n=0;n<MIDI_NOTES;++n)if(!g_active[ch][n]&&g_noteDisplayUntil[ch][n]&&g_noteDisplayUntil[ch][n]<=g_elapsedUsec){g_noteDisplayUntil[ch][n]=0;expiredNotes=true;}
-    for(size_t tr=0;tr<g_trackNoteDisplayUntil.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(!g_trackActive[tr][n]&&!g_trackPercussionActive[tr][n]&&g_trackNoteDisplayUntil[tr][n]&&g_trackNoteDisplayUntil[tr][n]<=g_elapsedUsec){g_trackNoteDisplayUntil[tr][n]=0;g_trackNoteChannel[tr][n]=-1;expiredNotes=true;}
-    if(expiredNotes)InvalidateDynamic(hwnd);
+    for(int ch=0;ch<MIDI_CHANNELS;++ch)for(int n=0;n<MIDI_NOTES;++n)if(!g_active[ch][n]&&g_noteDisplayUntil[ch][n]&&g_noteDisplayUntil[ch][n]<=g_elapsedUsec){
+        g_noteDisplayUntil[ch][n]=0;
+        if(g_miniMode){int miniTop=g_progressHeight+(MINI_TRANSPORT_HEIGHT-MINI_SCREEN_H)/2;int miniY=miniTop+1+(MIDI_CHANNELS-1-ch)*2;int miniX=MINI_SCREEN_X+1+n;RECT miniPixel={miniX,miniY,miniX+1,miniY+1};InvalidateRect(hwnd,&miniPixel,FALSE);}
+        else if(!g_trackMode){RECT noteRect=NoteRect(ch,n,client.right);InvalidateRect(hwnd,&noteRect,FALSE);}
+    }
+    for(size_t tr=0;tr<g_trackNoteDisplayUntil.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(!g_trackActive[tr][n]&&!g_trackPercussionActive[tr][n]&&g_trackNoteDisplayUntil[tr][n]&&g_trackNoteDisplayUntil[tr][n]<=g_elapsedUsec){
+        g_trackNoteDisplayUntil[tr][n]=0;g_trackNoteChannel[tr][n]=-1;
+        if(!g_miniMode&&g_trackMode){RECT noteRect=NoteRect((int)tr,n,client.right);InvalidateRect(hwnd,&noteRect,FALSE);}
+    }
     if (g_elapsedUsec >= g_totalUsec) {
         g_playing = false;
         g_finished = true;
