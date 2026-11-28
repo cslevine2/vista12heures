@@ -28,7 +28,7 @@
 #include <algorithm>
 #include <cmath>
 
-static const TCHAR VERSION[] = _T("v0.502b");
+static const TCHAR VERSION[] = _T("v0.503");
 static TCHAR g_iniPath[MAX_PATH] = {};
 static TCHAR g_fileName[MAX_PATH] = {};
 static const int WIN_W = 760, WIN_H = 500;
@@ -58,10 +58,12 @@ static UINT g_gifFrameCount=0,g_gifFrameIndex=0;
 static std::vector<UINT> g_gifFrameDelaysMs;
 static ULONG_PTR g_gdiplusToken=0;
 static unsigned char g_active[MIDI_CHANNELS][MIDI_NOTES] = {};
+static unsigned char g_sustain[MIDI_CHANNELS] = {};
+static unsigned char g_sustainHeld[MIDI_CHANNELS][MIDI_NOTES] = {};
 static unsigned long long g_noteDisplayUntil[MIDI_CHANNELS][MIDI_NOTES] = {};
 static int g_noteDisplayVelocity[MIDI_CHANNELS][MIDI_NOTES] = {};
 static int g_minimumNoteDisplayTimeMs = 40;
-static std::vector<std::vector<unsigned char>> g_trackActive,g_trackPercussionActive;
+static std::vector<std::vector<unsigned char>> g_trackActive,g_trackPercussionActive,g_trackSustainHeld;
 static std::vector<std::vector<int>> g_trackVelocity,g_trackPercussionVelocity;
 static std::vector<std::vector<int>> g_trackNoteChannel;
 static std::vector<std::vector<unsigned long long>> g_trackNoteDisplayUntil;
@@ -265,6 +267,7 @@ static int LinearToSrgb(double x) {
  double c=x<=0.0031308?12.92*x:1.055*pow(x,1.0/2.4)-0.055;
  int n=(int)(c*255.0+0.5); if(n<0)n=0; if(n>255)n=255; return n;
 }
+static COLORREF DimSustainColor(COLORREF c){return RGB((GetRValue(c)+1)/2,(GetGValue(c)+1)/2,(GetBValue(c)+1)/2);}
 static COLORREF ColorForNote(int note,int velocity) {
  COLORREF base=g_noteColors[note%12];
  double v=velocity/127.0;
@@ -436,11 +439,11 @@ static void MidiPanic() {
         for(int ch=0;ch<MIDI_CHANNELS;++ch)
             SendMidiShort((unsigned char)(0xB0|ch),123,0);
     }
-    memset(g_active,0,sizeof(g_active));
+    memset(g_active,0,sizeof(g_active));memset(g_sustain,0,sizeof(g_sustain));memset(g_sustainHeld,0,sizeof(g_sustainHeld));
     memset(g_velocity,0,sizeof(g_velocity));
     for(size_t t=0;t<g_trackActive.size();++t) {
         std::fill(g_trackActive[t].begin(),g_trackActive[t].end(),0);
-        std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);
+        std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);std::fill(g_trackSustainHeld[t].begin(),g_trackSustainHeld[t].end(),0);
         std::fill(g_trackVelocity[t].begin(),g_trackVelocity[t].end(),0);
         std::fill(g_trackPercussionVelocity[t].begin(),g_trackPercussionVelocity[t].end(),0);
     }
@@ -500,7 +503,7 @@ static void ResumeActiveNotes() {
     }
 }
 static void ClearPlayback() {
-    memset(g_active, 0, sizeof(g_active));
+    memset(g_active, 0, sizeof(g_active));memset(g_sustain,0,sizeof(g_sustain));memset(g_sustainHeld,0,sizeof(g_sustainHeld));
     memset(g_noteDisplayUntil,0,sizeof(g_noteDisplayUntil));
     memset(g_noteDisplayVelocity,0,sizeof(g_noteDisplayVelocity));
     memset(g_pitchBend,0,sizeof(g_pitchBend));
@@ -508,7 +511,7 @@ static void ClearPlayback() {
     std::fill(g_trackExpression.begin(),g_trackExpression.end(),127);
     std::fill(g_trackPan.begin(),g_trackPan.end(),64);
     memset(g_velocity, 0, sizeof(g_velocity));
-    for(size_t t=0;t<g_trackActive.size();++t){std::fill(g_trackNoteDisplayUntil[t].begin(),g_trackNoteDisplayUntil[t].end(),0);std::fill(g_trackNoteDisplayVelocity[t].begin(),g_trackNoteDisplayVelocity[t].end(),0);std::fill(g_trackNoteChannel[t].begin(),g_trackNoteChannel[t].end(),-1);std::fill(g_trackActive[t].begin(),g_trackActive[t].end(),0);std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);std::fill(g_trackVelocity[t].begin(),g_trackVelocity[t].end(),0);std::fill(g_trackPercussionVelocity[t].begin(),g_trackPercussionVelocity[t].end(),0);}
+    for(size_t t=0;t<g_trackActive.size();++t){std::fill(g_trackNoteDisplayUntil[t].begin(),g_trackNoteDisplayUntil[t].end(),0);std::fill(g_trackNoteDisplayVelocity[t].begin(),g_trackNoteDisplayVelocity[t].end(),0);std::fill(g_trackNoteChannel[t].begin(),g_trackNoteChannel[t].end(),-1);std::fill(g_trackActive[t].begin(),g_trackActive[t].end(),0);std::fill(g_trackPercussionActive[t].begin(),g_trackPercussionActive[t].end(),0);std::fill(g_trackSustainHeld[t].begin(),g_trackSustainHeld[t].end(),0);std::fill(g_trackVelocity[t].begin(),g_trackVelocity[t].end(),0);std::fill(g_trackPercussionVelocity[t].begin(),g_trackPercussionVelocity[t].end(),0);}
     memcpy(g_program, g_initialProgram, sizeof(g_program));
     g_elapsedUsec = 0;
     g_lastDisplayedSecond = ~0ULL;
@@ -703,7 +706,7 @@ static bool LoadMidiFile(const TCHAR* path) {
     }
     g_events.swap(events);
     g_tracks.swap(tracks);
-    g_trackActive.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));
+    g_trackActive.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));g_trackSustainHeld.assign(g_tracks.size(),std::vector<unsigned char>(MIDI_NOTES,0));
     g_trackNoteChannel.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,-1));
     g_trackNoteDisplayUntil.assign(g_tracks.size(),std::vector<unsigned long long>(MIDI_NOTES,0));
     g_trackNoteDisplayVelocity.assign(g_tracks.size(),std::vector<int>(MIDI_NOTES,0));
@@ -829,6 +832,7 @@ static void AdvancePlayback(HWND hwnd) {
             }
         } else if (e.type == 5) {
             SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
+            if(e.a==64){bool on=e.b>=65;if(g_sustain[e.channel]&&!on){g_sustain[e.channel]=0;for(int n=0;n<MIDI_NOTES;++n)if(g_sustainHeld[e.channel][n]){g_sustainHeld[e.channel][n]=0;g_noteDisplayUntil[e.channel][n]=0;if(g_miniMode){int mt=g_progressHeight+(MINI_TRANSPORT_HEIGHT-MINI_SCREEN_H)/2;int my=mt+1+(MIDI_CHANNELS-1-e.channel)*2;int mx=MINI_SCREEN_X+1+n;RECT mr={mx,my,mx+1,my+1};InvalidateRect(hwnd,&mr,FALSE);}else if(!g_trackMode){RECT nr=NoteRect(e.channel,n,client.right);InvalidateRect(hwnd,&nr,FALSE);}}for(size_t tr=0;tr<g_trackSustainHeld.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(g_trackSustainHeld[tr][n]&&g_trackNoteChannel[tr][n]==e.channel){g_trackSustainHeld[tr][n]=0;g_trackNoteDisplayUntil[tr][n]=0;g_trackNoteChannel[tr][n]=-1;if(!g_miniMode&&g_trackMode){RECT nr=NoteRect((int)tr,n,client.right);InvalidateRect(hwnd,&nr,FALSE);}}}else if(!g_sustain[e.channel]&&on)g_sustain[e.channel]=1;}
             if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11){g_trackExpression[e.track]=e.b;RECT cr={22,DisplayRowY(e.track)-7,82,DisplayRowY(e.track)+9};InvalidateRect(hwnd,&cr,FALSE);}
             if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10){g_trackPan[e.track]=e.b;RECT cr={22,DisplayRowY(e.track)-7,82,DisplayRowY(e.track)+9};InvalidateRect(hwnd,&cr,FALSE);}
         } else if (e.type == 6) {
@@ -840,12 +844,12 @@ static void AdvancePlayback(HWND hwnd) {
             RECT oldRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if (e.type == 1) {
                 SendMidiShort((unsigned char)(0x90 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
-                g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;
-                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;g_trackNoteDisplayUntil[e.track][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_trackNoteDisplayVelocity[e.track][e.a]=e.b;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}
+                g_active[e.channel][e.a]=1;g_sustainHeld[e.channel][e.a]=0;g_velocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;g_trackSustainHeld[e.track][e.a]=0;g_trackNoteDisplayUntil[e.track][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_trackNoteDisplayVelocity[e.track][e.a]=e.b;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}
             } else {
                 SendMidiShort((unsigned char)(0x80 | e.channel), (unsigned char)e.a, (unsigned char)e.b);
-                g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;
-                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}
+                g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(g_sustain[e.channel])g_sustainHeld[e.channel][e.a]=1;
+                if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackSustainHeld[e.track][e.a]=g_sustain[e.channel]?1:0;g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;}
             }
             RECT newRect = g_trackMode?NoteRect(e.track,e.a,client.right):NoteRect(e.channel,e.a,client.right);
             if(g_miniMode) {
@@ -861,12 +865,12 @@ static void AdvancePlayback(HWND hwnd) {
             dynamicChanged = true;
         }
     }
-    for(int ch=0;ch<MIDI_CHANNELS;++ch)for(int n=0;n<MIDI_NOTES;++n)if(!g_active[ch][n]&&g_noteDisplayUntil[ch][n]&&g_noteDisplayUntil[ch][n]<=g_elapsedUsec){
+    for(int ch=0;ch<MIDI_CHANNELS;++ch)for(int n=0;n<MIDI_NOTES;++n)if(!g_active[ch][n]&&!g_sustainHeld[ch][n]&&g_noteDisplayUntil[ch][n]&&g_noteDisplayUntil[ch][n]<=g_elapsedUsec){
         g_noteDisplayUntil[ch][n]=0;
         if(g_miniMode){int miniTop=g_progressHeight+(MINI_TRANSPORT_HEIGHT-MINI_SCREEN_H)/2;int miniY=miniTop+1+(MIDI_CHANNELS-1-ch)*2;int miniX=MINI_SCREEN_X+1+n;RECT miniPixel={miniX,miniY,miniX+1,miniY+1};InvalidateRect(hwnd,&miniPixel,FALSE);}
         else if(!g_trackMode){RECT noteRect=NoteRect(ch,n,client.right);InvalidateRect(hwnd,&noteRect,FALSE);}
     }
-    for(size_t tr=0;tr<g_trackNoteDisplayUntil.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(!g_trackActive[tr][n]&&!g_trackPercussionActive[tr][n]&&g_trackNoteDisplayUntil[tr][n]&&g_trackNoteDisplayUntil[tr][n]<=g_elapsedUsec){
+    for(size_t tr=0;tr<g_trackNoteDisplayUntil.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(!g_trackActive[tr][n]&&!g_trackPercussionActive[tr][n]&&!g_trackSustainHeld[tr][n]&&g_trackNoteDisplayUntil[tr][n]&&g_trackNoteDisplayUntil[tr][n]<=g_elapsedUsec){
         g_trackNoteDisplayUntil[tr][n]=0;g_trackNoteChannel[tr][n]=-1;
         if(!g_miniMode&&g_trackMode){RECT noteRect=NoteRect((int)tr,n,client.right);InvalidateRect(hwnd,&noteRect,FALSE);}
     }
@@ -904,16 +908,16 @@ static void SeekPlaybackToUsec(HWND hwnd, unsigned long long target) {
     ClearPlayback();
     while (g_eventIndex < g_events.size() && g_events[g_eventIndex].usec <= target) {
         const MidiEvent& e = g_events[g_eventIndex++];
-        if(e.type==1){g_active[e.channel][e.a]=1;g_velocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;g_trackNoteDisplayUntil[e.track][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_trackNoteDisplayVelocity[e.track][e.a]=e.b;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}}
-        else if(e.type==0){g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;if(target>=g_trackNoteDisplayUntil[e.track][e.a])g_trackNoteChannel[e.track][e.a]=-1;}}
+        if(e.type==1){g_active[e.channel][e.a]=1;g_sustainHeld[e.channel][e.a]=0;g_velocity[e.channel][e.a]=e.b;g_noteDisplayUntil[e.channel][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_noteDisplayVelocity[e.channel][e.a]=e.b;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackNoteChannel[e.track][e.a]=e.channel;g_trackSustainHeld[e.track][e.a]=0;g_trackNoteDisplayUntil[e.track][e.a]=e.usec+(unsigned long long)g_minimumNoteDisplayTimeMs*1000ULL;g_trackNoteDisplayVelocity[e.track][e.a]=e.b;if(e.channel==9){g_trackPercussionActive[e.track][e.a]=1;g_trackPercussionVelocity[e.track][e.a]=e.b;}else{g_trackActive[e.track][e.a]=1;g_trackVelocity[e.track][e.a]=e.b;}}}
+        else if(e.type==0){g_active[e.channel][e.a]=0;g_velocity[e.channel][e.a]=0;if(g_sustain[e.channel])g_sustainHeld[e.channel][e.a]=1;if(e.track>=0&&(size_t)e.track<g_trackActive.size()){g_trackSustainHeld[e.track][e.a]=g_sustain[e.channel]?1:0;g_trackActive[e.track][e.a]=0;g_trackPercussionActive[e.track][e.a]=0;g_trackVelocity[e.track][e.a]=0;g_trackPercussionVelocity[e.track][e.a]=0;if(target>=g_trackNoteDisplayUntil[e.track][e.a])g_trackNoteChannel[e.track][e.a]=-1;}}
         else if (e.type == 2) g_program[e.channel] = e.a;
-        else if (e.type == 5) { SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11)g_trackExpression[e.track]=e.b; if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10)g_trackPan[e.track]=e.b; }
+        else if (e.type == 5) { SendMidiShort((unsigned char)(0xB0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); if(e.a==64){bool on=e.b>=65;if(!on){g_sustain[e.channel]=0;for(int n=0;n<MIDI_NOTES;++n)g_sustainHeld[e.channel][n]=0;for(size_t tr=0;tr<g_trackSustainHeld.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(g_trackNoteChannel[tr][n]==e.channel){g_trackSustainHeld[tr][n]=0;if(target>=g_trackNoteDisplayUntil[tr][n])g_trackNoteChannel[tr][n]=-1;}}else g_sustain[e.channel]=1;} if(e.track>=0&&(size_t)e.track<g_trackExpression.size()&&e.a==11)g_trackExpression[e.track]=e.b; if(e.track>=0&&(size_t)e.track<g_trackPan.size()&&e.a==10)g_trackPan[e.track]=e.b; }
         else if (e.type == 6) { SendMidiShort((unsigned char)(0xE0 | e.channel), (unsigned char)e.a, (unsigned char)e.b); int bend=((e.b&0x7f)<<7)|(e.a&0x7f); g_pitchBend[e.channel]=bend-8192; }
         else if (e.type == 3) g_currentTempo = (unsigned int)e.a;
         else if (e.type == 4) { g_currentTimeNumerator = (unsigned char)e.a; g_currentTimeDenominatorPower = (unsigned char)e.b; }
     }
-    for(int ch=0;ch<MIDI_CHANNELS;++ch)for(int n=0;n<MIDI_NOTES;++n)if(!g_active[ch][n]&&g_noteDisplayUntil[ch][n]<=target)g_noteDisplayUntil[ch][n]=0;
-    for(size_t tr=0;tr<g_trackNoteDisplayUntil.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(!g_trackActive[tr][n]&&!g_trackPercussionActive[tr][n]&&g_trackNoteDisplayUntil[tr][n]<=target){g_trackNoteDisplayUntil[tr][n]=0;g_trackNoteChannel[tr][n]=-1;}
+    for(int ch=0;ch<MIDI_CHANNELS;++ch)for(int n=0;n<MIDI_NOTES;++n)if(!g_active[ch][n]&&!g_sustainHeld[ch][n]&&g_noteDisplayUntil[ch][n]<=target)g_noteDisplayUntil[ch][n]=0;
+    for(size_t tr=0;tr<g_trackNoteDisplayUntil.size();++tr)for(int n=0;n<MIDI_NOTES;++n)if(!g_trackActive[tr][n]&&!g_trackPercussionActive[tr][n]&&!g_trackSustainHeld[tr][n]&&g_trackNoteDisplayUntil[tr][n]<=target){g_trackNoteDisplayUntil[tr][n]=0;g_trackNoteChannel[tr][n]=-1;}
     g_elapsedUsec = target;
     g_finished = (target >= g_totalUsec);
     for (int ch = 0; ch < MIDI_CHANNELS; ++ch)
@@ -1265,9 +1269,9 @@ static void Paint(HWND hwnd) {
         FillRectColor(dc,mini,g_uiBackground);DrawWindowButtonFrame(dc,mini,g_uiLines);
         for(int ch=0;ch<MIDI_CHANNELS;++ch) {
             int py=mini.top+1+(MIDI_CHANNELS-1-ch)*2;
-            for(int note=0;note<MIDI_NOTES;++note)if(g_active[ch][note]) {
+            for(int note=0;note<MIDI_NOTES;++note)if(g_active[ch][note]||g_sustainHeld[ch][note]) {
                 int px=mini.left+1+note;
-                COLORREF color=(ch==9)?ColorForPercussion(g_velocity[ch][note]):ColorForNote(note,g_velocity[ch][note]);
+                int vel=g_active[ch][note]?g_velocity[ch][note]:g_noteDisplayVelocity[ch][note];COLORREF color=(ch==9)?ColorForPercussion(vel):ColorForNote(note,vel);if(g_sustainHeld[ch][note])color=DimSustainColor(color);
                 RECT pixel={px,py,px+1,py+1};
                 FillRectColor(dc,pixel,color);
             }
@@ -1326,8 +1330,8 @@ TCHAR measureValue[64]={};
     int rows=DisplayRowCount();
     if(!g_trackMode){for(int ch=0;ch<MIDI_CHANNELS;++ch){int y=DisplayRowY(ch);TCHAR p[16]={};if(ch==9)lstrcpyn(p,_T("RYTHME"),16);else _stprintf_s(p,_T("%03d"),g_program[ch]+1);Txt(dc,72,y-5,g_loaded?p:_T("---"),RGB(160,170,195),10);
       if(ch!=9&&g_loaded&&g_programNames[g_program[ch]][0]){RECT nr={106,y-7,timelineX-7,y+9};TxtClipped(dc,nr,g_programNames[g_program[ch]],RGB(205,210,225),g_instrumentFontSize);}
-      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]||g_noteDisplayUntil[ch][n]>g_elapsedUsec){int vel=g_active[ch][n]?g_velocity[ch][n]:g_noteDisplayVelocity[ch][n];RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;FillRectColor(dc,nr,ch==9?ColorForPercussion(vel):ColorForNote(n,vel));DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}}}
-    else if(g_loaded){for(int tr=0;tr<rows;++tr){int y=DisplayRowY(tr);RECT vr={24,y-2,24+(24*g_trackExpression[tr])/127,y+2};if(vr.right>vr.left&&vr.right>ps.rcPaint.left&&vr.left<ps.rcPaint.right&&vr.bottom>ps.rcPaint.top&&vr.top<ps.rcPaint.bottom)FillRectColor(dc,vr,g_midiLinearControlsColor);int px=54+(24*g_trackPan[tr])/127;RECT pan={px-1,y-5,px+2,y+6};if(pan.right>ps.rcPaint.left&&pan.left<ps.rcPaint.right&&pan.bottom>ps.rcPaint.top&&pan.top<ps.rcPaint.bottom)FillRectColor(dc,pan,g_midiLinearControlsColor);for(int n=0;n<MIDI_NOTES;++n){RECT nr=NoteRect(tr,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;if(g_trackActive[tr][n]||(!g_trackPercussionActive[tr][n]&&g_trackNoteChannel[tr][n]>=0&&g_trackNoteChannel[tr][n]!=9&&g_trackNoteDisplayUntil[tr][n]>g_elapsedUsec)){int vel=g_trackActive[tr][n]?g_trackVelocity[tr][n]:g_trackNoteDisplayVelocity[tr][n];FillRectColor(dc,nr,ColorForNote(n,vel));int ch=g_trackNoteChannel[tr][n];if(ch>=0&&ch<MIDI_CHANNELS)DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}if(g_trackPercussionActive[tr][n]||(g_trackNoteChannel[tr][n]==9&&g_trackNoteDisplayUntil[tr][n]>g_elapsedUsec)){int vel=g_trackPercussionActive[tr][n]?g_trackPercussionVelocity[tr][n]:g_trackNoteDisplayVelocity[tr][n];FillRectColor(dc,nr,ColorForPercussion(vel));int ch=g_trackNoteChannel[tr][n];if(ch>=0&&ch<MIDI_CHANNELS)DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}}}}
+      if(!g_loaded)continue;for(int n=0;n<MIDI_NOTES;++n)if(g_active[ch][n]||g_sustainHeld[ch][n]||g_noteDisplayUntil[ch][n]>g_elapsedUsec){int vel=g_active[ch][n]?g_velocity[ch][n]:g_noteDisplayVelocity[ch][n];RECT nr=NoteRect(ch,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;COLORREF nc=ch==9?ColorForPercussion(vel):ColorForNote(n,vel);if(g_sustainHeld[ch][n])nc=DimSustainColor(nc);FillRectColor(dc,nr,nc);DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}}}
+    else if(g_loaded){for(int tr=0;tr<rows;++tr){int y=DisplayRowY(tr);RECT vr={24,y-2,24+(24*g_trackExpression[tr])/127,y+2};if(vr.right>vr.left&&vr.right>ps.rcPaint.left&&vr.left<ps.rcPaint.right&&vr.bottom>ps.rcPaint.top&&vr.top<ps.rcPaint.bottom)FillRectColor(dc,vr,g_midiLinearControlsColor);int px=54+(24*g_trackPan[tr])/127;RECT pan={px-1,y-5,px+2,y+6};if(pan.right>ps.rcPaint.left&&pan.left<ps.rcPaint.right&&pan.bottom>ps.rcPaint.top&&pan.top<ps.rcPaint.bottom)FillRectColor(dc,pan,g_midiLinearControlsColor);for(int n=0;n<MIDI_NOTES;++n){RECT nr=NoteRect(tr,n,cr.right);if(nr.right<ps.rcPaint.left||nr.left>ps.rcPaint.right||nr.bottom<ps.rcPaint.top||nr.top>ps.rcPaint.bottom)continue;if(g_trackActive[tr][n]||(!g_trackPercussionActive[tr][n]&&g_trackNoteChannel[tr][n]>=0&&g_trackNoteChannel[tr][n]!=9&&(g_trackSustainHeld[tr][n]||g_trackNoteDisplayUntil[tr][n]>g_elapsedUsec))){int vel=g_trackActive[tr][n]?g_trackVelocity[tr][n]:g_trackNoteDisplayVelocity[tr][n];COLORREF nc=ColorForNote(n,vel);if(g_trackSustainHeld[tr][n])nc=DimSustainColor(nc);FillRectColor(dc,nr,nc);int ch=g_trackNoteChannel[tr][n];if(ch>=0&&ch<MIDI_CHANNELS)DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}if(g_trackPercussionActive[tr][n]||(g_trackNoteChannel[tr][n]==9&&(g_trackSustainHeld[tr][n]||g_trackNoteDisplayUntil[tr][n]>g_elapsedUsec))){int vel=g_trackPercussionActive[tr][n]?g_trackPercussionVelocity[tr][n]:g_trackNoteDisplayVelocity[tr][n];COLORREF nc=ColorForPercussion(vel);if(g_trackSustainHeld[tr][n])nc=DimSustainColor(nc);FillRectColor(dc,nr,nc);int ch=g_trackNoteChannel[tr][n];if(ch>=0&&ch<MIDI_CHANNELS)DrawNotePitchBend(dc,nr,g_pitchBend[ch]);}}}}
     int barY = cr.bottom - 77;
     RECT progressFill = { 0, barY + 2, ProgressWidth(cr.right), barY + g_progressHeight - 2 };
     RECT visibleFill;
